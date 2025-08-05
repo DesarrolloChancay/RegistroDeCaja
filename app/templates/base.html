@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Gestión de Caja{% endblock %}</title>
+
+    <!-- Tailwind y elementos -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1"
+      type="module"
+    ></script>
+  </head>
+
+  <body class="bg-gray-100 font-sans">
+    <!-- Header / Navbar -->
+    <header
+      class="bg-gradient-to-r from-blue-700 to-blue-500 text-white py-4 shadow-md"
+    >
+      <div class="container mx-auto flex justify-between items-center px-4">
+        <h1 class="text-xl font-bold">Gestión de Caja</h1>
+        <nav class="space-x-4">
+          <a href="#" class="hover:underline">Ingreso de Ventas (Vendedor)</a>
+          <a
+            href="/auditoria"
+            class="bg-white text-blue-700 font-semibold px-4 py-2 rounded shadow"
+            >Auditoría de Gerencia</a
+          >
+          <a href="#" class="hover:underline">Mantenimiento</a>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Contenido principal -->
+    <main class="container mx-auto my-10 px-4">
+      {% block content %}{% endblock %}
+    </main>
+
+    <!-- JS de tu app -->
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+  </body>
+</html>

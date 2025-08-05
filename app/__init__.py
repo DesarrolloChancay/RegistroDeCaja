@@ -1,10 +1,6 @@
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from .config import Config
-from app import models  # Esto carga todos los modelos
-
-
-db = SQLAlchemy()
+from app.config import Config
+from app.extensions import db  # <- import desde extensions
 
 def create_app():
     app = Flask(__name__)
@@ -16,5 +12,7 @@ def create_app():
     from app.controllers.gerencia_controller import gerencia_bp
     app.register_blueprint(gerencia_bp)
 
+    # Cargar modelos (importa después de db.init_app para evitar ciclo)
+    from app import models
 
     return app
