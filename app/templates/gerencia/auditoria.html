@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="p-6">
+  <h1 class="text-2xl font-bold mb-4">Auditoría de Gerencia</h1>
+
+  <table class="min-w-full border divide-y divide-gray-200 text-sm">
+    <thead class="bg-gray-100">
+      <tr class="text-left">
+        <th class="p-2">Fecha Registro Sistema</th>
+        <th class="p-2">Transacción</th>
+        <th class="p-2">Empresa</th>
+        <th class="p-2">Banco</th>
+        <th class="p-2">Monto</th>
+        <th class="p-2">Detalle</th>
+        <th class="p-2">Confirmación Redes</th>
+        <th class="p-2">Confirmación Gerencia</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in registros %}
+      <tr class="border-t hover:bg-gray-50">
+        <td class="p-2">{{ r.fecha_creacion.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td class="p-2">{{ r.recibo }}</td>
+        <td class="p-2">Resource</td>  <!-- Por ahora, estático -->
+        <td class="p-2">BCP</td>       <!-- Por ahora, estático -->
+        <td class="p-2">${{ r.monto }}</td>
+        <td class="p-2">{{ r.detalle }}</td>
+        <td class="p-2">
+          <span class="px-2 py-1 text-xs rounded-full {{ 'bg-green-200 text-green-800' if r.confirmado_redes else 'bg-blue-200 text-blue-800' }}">
+            {{ r.estado_redes() }}
+          </span>
+        </td>
+        <td class="p-2">
+          <span class="px-2 py-1 text-xs rounded-full {{ 'bg-yellow-200 text-yellow-800' if not r.confirmado else 'bg-green-200 text-green-800' }}">
+            {{ r.estado_confirmacion() }}
+          </span>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
