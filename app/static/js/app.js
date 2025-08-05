@@ -1,80 +1,56 @@
-let botonActual, fechaInputActual;
+function confirmarRedes(id) {
+    const inputFecha = document.getElementById(`fecha_redes_${id}`);
+    const fechaSeleccionada = inputFecha?.value;
 
-async function cargarDatos() {
-    const res = await fetch('/api/auditoria');
-    const datos = await res.json();
+    if (!fechaSeleccionada) {
+        alert("⚠️ Por favor, selecciona una fecha para confirmar redes.");
+        return;
+    }
 
-    const tbody = document.getElementById('tablaAuditoria');
-    tbody.innerHTML = '';
-
-    datos.forEach((row, index) => {
-        const tr = document.createElement('tr');
-        tr.classList.add('bg-white', 'border-b');
-
-        const inputFecha = document.createElement('input');
-        inputFecha.type = 'date';
-        inputFecha.className = 'border border-gray-300 rounded px-2 py-1';
-        inputFecha.value = row.fecha_voucher_confirmacion || '';
-        inputFecha.id = `fecha-confirmacion-${index}`;
-
-        const btnEstado = document.createElement('button');
-        btnEstado.innerText = row.confirmacion_redes;
-        btnEstado.className = 'text-xs px-3 py-1 rounded-full font-semibold';
-
-        if (row.confirmacion_redes === 'Confirmado') {
-            btnEstado.classList.add('bg-green-600', 'text-white');
-            btnEstado.disabled = true;
-        } else {
-            btnEstado.classList.add('bg-blue-600', 'text-white');
-            btnEstado.setAttribute('command', 'show-modal');
-            btnEstado.setAttribute('commandfor', 'dialog-confirmar');
-
-            btnEstado.addEventListener('click', (e) => {
-                const fechaValor = inputFecha.value;
-                if (!fechaValor) {
-                    e.preventDefault(); // evita abrir el modal
-                    alert("⚠️ Debes ingresar la fecha antes de confirmar.");
-                    return;
-                }
-                botonActual = btnEstado;
-                fechaInputActual = inputFecha;
-            });
+    mostrarDialogoConfirmacion({
+        titulo: "Confirmar desde Redes",
+        mensaje: "¿Deseas confirmar esta transacción desde redes? Esta acción es irreversible.",
+        textoBoton: "Sí, confirmar",
+        onConfirm: () => {
+            fetch(`/confirmar_redes/${id}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ fecha: fechaSeleccionada }),
+            })
+                .then((res) => res.json())
+                .then((data) => {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        alert(data.error || "Error al confirmar.");
+                    }
+                })
+                .catch((err) => {
+                    console.error(err);
+                    alert("Error en el servidor.");
+                });
         }
-
-        tr.innerHTML = `
-            <td class="px-4 py-3">${row.fecha_voucher}</td>
-            <td class="px-4 py-3">${row.fecha_registro}</td>
-            <td class="px-4 py-3">${row.transaccion}</td>
-            <td class="px-4 py-3">${row.empresa}</td>
-            <td class="px-4 py-3">$${row.monto.toFixed(2)}</td>
-            <td class="px-4 py-3">${row.detalle}</td>
-            <td class="px-4 py-3" id="td-fecha-${index}"></td>
-            <td class="px-4 py-3" id="td-btn-${index}"></td>
-            <td class="px-4 py-3"><input type="date" class="border border-gray-300 rounded px-2 py-1" value="${row.fecha_ingreso_dinero || ''}" /></td>
-            <td class="px-4 py-3"><span class="bg-yellow-400 text-white text-xs px-3 py-1 rounded-full">${row.confirmar_pago}</span></td>
-        `;
-
-        tbody.appendChild(tr);
-        document.getElementById(`td-fecha-${index}`).appendChild(inputFecha);
-        document.getElementById(`td-btn-${index}`).appendChild(btnEstado);
     });
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-    cargarDatos();
+function mostrarDialogoConfirmacion({ titulo, mensaje, textoBoton, onConfirm }) {
+    const dialog = document.getElementById("dialog-confirmar");
+    const title = document.getElementById("dialog-title");
+    const mensajeElem = dialog.querySelector("p");
+    const confirmarBtn = document.getElementById("btn-confirmar-modal");
 
-    document.getElementById('btn-confirmar-modal').addEventListener('click', () => {
-        if (!botonActual || !fechaInputActual) return;
+    title.innerText = titulo;
+    mensajeElem.innerText = mensaje;
+    confirmarBtn.innerText = textoBoton || "Confirmar";
 
-        botonActual.innerText = 'Confirmado';
-        botonActual.classList.remove('bg-blue-600');
-        botonActual.classList.add('bg-green-600');
-        botonActual.disabled = true;
+    const nuevoBtn = confirmarBtn.cloneNode(true);
+    confirmarBtn.parentNode.replaceChild(nuevoBtn, confirmarBtn);
 
-        // Opcional: cerrar modal manualmente
-        document.querySelector('dialog#dialog-confirmar').close();
-
-        // Aquí podrías hacer un POST a backend para guardar
-        console.log(`✅ Confirmado con fecha ${fechaInputActual.value}`);
+    nuevoBtn.addEventListener("click", () => {
+        onConfirm();
+        dialog.close();
     });
-});
+
+    dialog.showModal();
+}
+

@@ -52,23 +52,47 @@
           <td class="px-4 py-2">S/. {{ r.monto }}</td>
           <td class="px-4 py-2">{{ r.detalle }}</td>
           <td class="px-4 py-2">
-            {{ r.fecha_confirmacion_redes.strftime('%Y-%m-%d') if r.fecha_confirmacion_redes else '—' }}
+            <input type="date"
+                class="border border-gray-300 rounded px-3 py-2"
+                id="fecha_redes_{{ r.id }}"
+                value="{{ r.fecha_confirmacion_redes.strftime('%Y-%m-%d') if r.fecha_confirmacion_redes else '' }}"
+                {% if r.fecha_confirmacion_redes %}
+                  disabled
+                {% endif %} />
           </td>
           <td class="px-4 py-2">
-            <span class="px-2 py-1 text-xs rounded-full {{ 'bg-green-200 text-green-800' if r.confirmado_redes else 'bg-blue-200 text-blue-800' }}">
-              {{ 'Confirmado' if r.confirmado_redes else 'Pendiente' }}
-            </span>
-          </td>
-          <td class="px-4 py-2">
-            {{ r.fecha_pago_recibido.strftime('%Y-%m-%d') if r.fecha_pago_recibido else '—' }}
-          </td>
-          <td class="px-4 py-2 text-center">
+            {% if r.confirmado_redes %}
+              <span class="px-2 py-1 text-xs rounded-full bg-green-200 text-green-800">
+                Confirmado
+              </span>
+            {% else %}
             <button
-              onclick="openModal('{{ r.id }}')"
-              class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm"
+              class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm"
+              onclick="confirmarRedes('{{ r.id }}')"
             >
               Confirmar
             </button>
+            {% endif %}
+          </td>
+          <td class="px-4 py-2">
+            <input type="date" class="border border-gray-300 rounded px-3 py-2" id="fecha_confirmacion_gerencia_{{ r.id }}" value="{{ r.fecha_pago_recibido.strftime('%Y-%m-%d') if r.fecha_pago_recibido else '' }}"
+            {% if r.fecha_pago_recibido %}
+                disabled
+            {% endif %}
+              />
+          </td>
+          <td class="px-4 py-2 text-center">
+            {% if r.confirmado %}
+              <span class="text-green-600 font-semibold">Confirmado</span>
+            {% else %}
+              <button
+                class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm"
+                onclick="confirmarRegistro('{{ r.id }}', '{{ r.recibo }}')"
+              >
+                Pendiente
+              </button>
+            {% endif %}
+          </td>
           </td>
         </tr>
         {% endfor %}
