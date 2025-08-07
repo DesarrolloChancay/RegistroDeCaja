@@ -51,7 +51,6 @@ CREATE TABLE usuarios (
 -- Tabla principal de registros de ventas
 CREATE TABLE registros_ventas (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    fecha_comprobante DATE,
     recibo VARCHAR(100) UNIQUE,
     medio_pago_id INT,
     entidad_banco_id INT,
@@ -61,14 +60,15 @@ CREATE TABLE registros_ventas (
     empresa_id INT,
     monto DECIMAL(10,2),
     confirmado BOOLEAN DEFAULT 0,
-    fecha_pago_recibido DATE,
+    fecha_registro_pago DATE, -- Va a venir de sistema Xafiro
+    fecha_comprobante DATE, -- Es la fecha que ingresa redes del comprobante
+    fecha_ingreso_cuenta DATE, -- Fecha que corrobora gerencia de cuando entró el pago a la cuenta
+    fecha_confirmacion_redes DATETIME, -- Fecha automatica que guarda cuando se confirma por redes
+    fecha_confirmacion_gerencia DATETIME, -- Fecha automatica que guarda cuando se confirma por gerencia
     confirmado_redes BOOLEAN DEFAULT 0,
-    fecha_confirmacion_redes DATE,
     vendedor_id VARCHAR(100),
-    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     confirmado_por_gerencia VARCHAR(100),
     confirmado_por_redes VARCHAR(100),
-    fecha_confirmacion DATE,
 
     FOREIGN KEY (empresa_id) REFERENCES empresas(id),
     FOREIGN KEY (area_id) REFERENCES areas(id),
