@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Auditoría de Gerencia{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-xl shadow p-6">
+  <h2 class="text-2xl font-semibold text-center mb-6">
+    Auditoría de Gerencia
+  </h2>
+
+  <!-- Filtro de Fecha y Botón -->
+  <div class="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
+    <label class="block w-full md:w-auto">
+      <span class="text-gray-700">Seleccionar Fecha para Exportar (Registro Sistema):</span>
+      <input
+        type="date"
+        id="fecha_exportar"
+        class="mt-1 block w-full md:w-auto border border-gray-300 rounded px-3 py-2"
+      />
+    </label>
+    <button
+      id="btn-exportar"
+      class="bg-gradient-to-r from-pink-500 to-purple-500 text-white px-6 py-2 rounded font-semibold shadow hover:opacity-90"
+    >
+      Exportar Datos
+    </button>
+  </div>
+
+  <!-- Tabla Principal -->
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm text-left border-t">
+      <thead class="bg-gray-100 text-gray-700 uppercase">
+        <tr>
+          <th class="px-4 py-3">Fecha Registro Sistema</th>
+          <th class="px-4 py-3">Transacción</th>
+          <th class="px-4 py-3">Empresa</th>
+          <th class="px-4 py-3">Banco</th>
+          <th class="px-4 py-3">Monto</th>
+          <th class="px-4 py-3">Detalle</th>
+          <th class="px-4 py-3">Fecha Voucher Confirmación Redes</th>
+          <th class="px-4 py-3">Confirmación Redes</th>
+          <th class="px-4 py-3">Fecha Ingreso Dinero</th>
+          <th class="px-4 py-3">Confirmar Pago Gerencia</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in registros %}
+        <tr class="bg-white border-b">
+          <td class="px-4 py-2">{{ r.fecha_creacion.strftime('%Y-%m-%d') }}</td>
+          <td class="px-4 py-2">{{ r.recibo }}</td>
+          <td class="px-4 py-2">Resource</td>
+          <td class="px-4 py-2">BCP</td>
+          <td class="px-4 py-2">S/. {{ r.monto }}</td>
+          <td class="px-4 py-2">{{ r.detalle }}</td>
+          <td class="px-4 py-2">
+            {{ r.fecha_confirmacion_redes.strftime('%Y-%m-%d') if r.fecha_confirmacion_redes else '—' }}
+          </td>
+          <td class="px-4 py-2">
+            <span class="px-2 py-1 text-xs rounded-full {{ 'bg-green-200 text-green-800' if r.confirmado_redes else 'bg-blue-200 text-blue-800' }}">
+              {{ 'Confirmado' if r.confirmado_redes else 'Pendiente' }}
+            </span>
+          </td>
+          <td class="px-4 py-2">
+            {{ r.fecha_pago_recibido.strftime('%Y-%m-%d') if r.fecha_pago_recibido else '—' }}
+          </td>
+          <td class="px-4 py-2 text-center">
+            <button
+              onclick="openModal('{{ r.id }}')"
+              class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm"
+            >
+              Confirmar
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal -->
+<el-dialog>
+  <dialog
+    id="dialog-confirmar"
+    aria-labelledby="dialog-title"
+    class="fixed inset-0 size-auto max-h-none max-w-none overflow-y-auto bg-transparent backdrop:bg-transparent z-50"
+  >
+    <el-dialog-backdrop class="fixed inset-0 bg-gray-500/75 transition-opacity"></el-dialog-backdrop>
+    <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+      <el-dialog-panel class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+        <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+          <div class="sm:flex sm:items-start">
+            <div class="mx-auto flex size-12 shrink-0 items-center justify-center rounded-full bg-blue-100 sm:mx-0 sm:size-10">
+              <svg class="size-6 text-blue-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 18.5A6.5 6.5 0 105.5 12a6.5 6.5 0 006.5 6.5z" />
+              </svg>
+            </div>
+            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+              <h3 id="dialog-title" class="text-base font-semibold text-gray-900">Confirmar transacción</h3>
+              <p class="text-sm text-gray-600 mt-2">¿Estás seguro de confirmar esta transacción? Esta acción es irreversible.</p>
+            </div>
+          </div>
+        </div>
+        <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+          <button
+            type="button"
+            id="btn-confirmar-modal"
+            class="inline-flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white hover:bg-green-500 sm:ml-3 sm:w-auto"
+          >
+            Confirmar
+          </button>
+          <button
+            type="button"
+            command="close"
+            commandfor="dialog-confirmar"
+            class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset hover:bg-gray-50 sm:mt-0 sm:w-auto"
+          >
+            Cancelar
+          </button>
+        </div>
+      </el-dialog-panel>
+    </div>
+  </dialog>
+</el-dialog>
+{% endblock %}

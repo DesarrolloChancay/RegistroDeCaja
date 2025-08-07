@@ -1,0 +1,1 @@
+from app.models.registro_venta import RegistroVenta
