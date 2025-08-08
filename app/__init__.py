@@ -12,7 +12,4 @@ def create_app():
     from app.controllers.gerencia_controller import gerencia_bp
     app.register_blueprint(gerencia_bp)
 
-    # Cargar modelos (importa después de db.init_app para evitar ciclo)
-    from app import models
-
     return app

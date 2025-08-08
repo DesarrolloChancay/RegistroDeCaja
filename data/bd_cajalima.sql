@@ -131,24 +131,22 @@ INSERT INTO usuarios (id, nombre, correo, contrasena, rol_id) VALUES
 ('verif01', 'Sandra Verificadora', 'sandra@resource.com', 'verif123', 3);
 
 -- Insertar registros de ventas
-INSERT INTO registros_ventas (
-    fecha_registro, recibo, medio_pago_id, entidad_banco_id, area_id, centro_costo_id,
-    detalle, empresa_id, monto, confirmado_general, fecha_ingreso_cuenta, confirmado_por_redes,
-    fecha_confirmacion_redes, vendedor_id, verificador_gerencia_id, verificador_redes_id,
-    confirmado_por_gerencia
-) VALUES
-('2025-08-01', 'RC001', 1, 1, 1, 1, 'Reserva habitación sencilla', 1, 250.00, TRUE, '2025-08-02', TRUE, '2025-08-02 10:00:00', 'vend01', 'admin01', 'verif01', TRUE),
-('2025-08-01', 'RC002', 2, 1, 1, 1, 'Pago con YAPE por habitación doble', 1, 300.00, TRUE, '2025-08-02', TRUE, '2025-08-02 11:30:00', 'vend02', 'admin01', 'verif01', TRUE),
-('2025-08-02', 'RC003', 3, 2, 2, 2, 'Pago por evento empresarial', 1, 1200.00, TRUE, '2025-08-03', TRUE, '2025-08-03 09:00:00', 'vend01', 'admin01', 'verif01', TRUE),
-('2025-08-02', 'RC004', 4, 2, 2, 3, 'Pago con PLIN por grupo', 1, 800.00, FALSE, NULL, FALSE, NULL, 'vend02', 'admin01', NULL, FALSE),
-('2025-08-03', 'RC005', 5, 3, 1, 1, 'Pago con link por habitación', 1, 500.00, FALSE, NULL, FALSE, NULL, 'vend01', NULL, NULL, FALSE),
-('2025-08-03', 'RC006', 6, 1, 1, 1, 'Depósito por servicios adicionales', 1, 200.00, TRUE, '2025-08-04', FALSE, NULL, 'vend02', 'admin01', NULL, TRUE),
-('2025-08-04', 'RC007', 7, 2, 2, 2, 'Transferencia por convención', 1, 1800.00, TRUE, '2025-08-05', TRUE, '2025-08-05 14:00:00', 'vend01', 'admin01', 'verif01', TRUE),
-('2025-08-04', 'RC008', 8, 3, 1, 3, 'Otros medios por reserva corporativa', 1, 950.00, FALSE, NULL, FALSE, NULL, 'vend02', NULL, NULL, FALSE),
-('2025-08-05', 'RC009', 1, 1, 1, 1, 'Efectivo por habitación ejecutiva', 1, 650.00, TRUE, '2025-08-05', TRUE, '2025-08-05 16:00:00', 'vend01', 'admin01', 'verif01', TRUE),
-('2025-08-05', 'RC010', 2, 2, 2, 3, 'Pago YAPE por grupo empresarial', 1, 1350.00, FALSE, NULL, FALSE, NULL, 'vend02', NULL, NULL, FALSE),
-('2025-08-06', 'RC011', 7, 4, 1, 1, 'Transferencia Interbank por reserva suite', 1, 750.00, TRUE, '2025-08-06', TRUE, '2025-08-06 10:15:00', 'vend01', 'admin01', 'verif01', TRUE),
-('2025-08-06', 'RC012', 3, 2, 2, 2, 'Pago con tarjeta por catering', 1, 550.00, TRUE, '2025-08-06', TRUE, '2025-08-06 11:45:00', 'vend02', 'admin01', 'verif01', TRUE),
-('2025-08-07', 'RC013', 1, 1, 3, 3, 'Efectivo por servicio de mensajería', 1, 150.00, FALSE, NULL, FALSE, NULL, 'vend01', NULL, NULL, FALSE),
-('2025-08-07', 'RC014', 5, 3, 1, 1, 'Pago con link por habitación familiar', 1, 450.00, FALSE, NULL, FALSE, NULL, 'vend02', NULL, NULL, FALSE),
-('2025-08-08', 'RC015', 6, 4, 2, 2, 'Depósito en Scotiabank por alquiler de sala', 1, 1500.00, TRUE, '2025-08-08', TRUE, '2025-08-08 15:30:00', 'vend01', 'admin01', 'verif01', TRUE);
+INSERT INTO registros_ventas (recibo, medio_pago_id, entidad_banco_id, area_id, centro_costo_id, detalle, empresa_id, monto, confirmado, fecha_registro_pago, fecha_comprobante, fecha_ingreso_cuenta, fecha_confirmacion_redes, fecha_confirmacion_gerencia, confirmado_redes, vendedor_id, confirmado_por_gerencia, confirmado_por_redes) VALUES
+('REC001', 7, 1, 1, 1, 'Venta de habitación Deluxe', 1, 450.00, 1, '2024-05-01', '2024-05-01', '2024-05-02', '2024-05-02 10:00:00', '2024-05-03 11:30:00', FALSE,  'vend01', 'admin01', 'verif01'),
+('REC002', 2, NULL, 3, 3, 'Venta de servicio de consultoría', 1, 150.50, 0, '2024-05-02', '2024-05-02', NULL, NULL, NULL, FALSE, 'vend02', NULL, NULL),
+('REC003', 3, 2, 1, 1, 'Venta de 5 noches en suite', 1, 1200.75, 1, '2024-05-03', '2024-05-03', '2024-05-04', '2024-05-03 16:20:00', '2024-05-04 10:00:00', TRUE, 'vend01', 'admin01', 'verif01'),
+('REC004', 1, NULL, 2, 2, 'Venta a grupo corporativo A', 1, 3500.00, 0, '2024-05-04', '2024-05-04', NULL, '2024-05-04 18:00:00', NULL, FALSE, 'vend02', NULL, 'verif01'),
+('REC005', 6, 3, 1, 1, 'Depósito por reserva de evento', 1, 800.00, 1, '2024-05-05', '2024-05-05', '2024-05-06', '2024-05-05 14:00:00', '2024-05-07 09:00:00', FALSE, 'vend01', 'admin01', 'verif01'),
+('REC006', 4, NULL, 3, 3, 'Venta de software', 1, 250.00, 0, '2024-05-06', '2024-05-06', NULL, NULL, NULL, FALSE, 'vend02', NULL, NULL),
+('REC007', 7, 4, 1, 1, 'Transferencia por servicio de spa', 1, 180.25, 1, '2024-05-07', '2024-05-07', '2024-05-07', '2024-05-07 11:00:00', '2024-05-08 10:30:00', TRUE, 'vend01', 'admin01', 'verif01'),
+('REC008', 3, 1, 2, 2, 'Servicios para conferencia', 1, 5500.00, 1, '2024-05-08', '2024-05-08', '2024-05-09', '2024-05-08 17:00:00', '2024-05-09 12:00:00', TRUE, 'vend02', 'admin01', 'verif01'),
+('REC009', 2, NULL, 1, 1, 'Venta de productos de la tienda', 1, 75.00, 0, '2024-05-09', '2024-05-09', NULL, NULL, NULL, FALSE, 'vend01', NULL, NULL),
+('REC010', 5, NULL, 3, 3, 'Pago de factura pendiente', 1, 320.00, 1, '2024-05-10', '2024-05-10', '2024-05-10', '2024-05-10 13:00:00', '2024-05-11 09:15:00', TRUE, 'vend02', 'admin01', 'verif01'),
+('REC011', 1, NULL, 1, 1, 'Pago por servicios de lavandería', 1, 45.00, 0, '2024-05-11', '2024-05-11', NULL, NULL, NULL, FALSE, 'vend01', NULL, NULL),
+('REC012', 6, 2, 2, 2, 'Depósito de cliente B', 1, 950.00, 1, '2024-05-12', '2024-05-12', '2024-05-13', '2024-05-13 10:00:00', '2024-05-14 11:00:00', FALSE, 'vend02', 'admin01', 'verif01'),
+('REC013', 7, 3, 3, 3, 'Pago por servicios de diseño web', 1, 600.00, 0, '2024-05-13', '2024-05-13', NULL, NULL, NULL, FALSE, 'vend01', NULL, NULL),
+('REC014', 3, 4, 1, 1, 'Venta de desayuno buffet', 1, 120.00, 1, '2024-05-14', '2024-05-14', '2024-05-15', '2024-05-14 10:00:00', '2024-05-15 10:00:00', TRUE, 'vend02', 'admin01', 'verif01'),
+('REC015', 8, NULL, 2, 2, 'Otros ingresos', 1, 25.00, 0, '2024-05-15', '2024-05-15', NULL, '2024-05-15 12:00:00', NULL, TRUE, 'vend01', NULL, 'verif01');
+
+
+SELECT * FROM registros_ventas
