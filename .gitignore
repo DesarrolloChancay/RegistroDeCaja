@@ -1,3 +1,5 @@
 requirements.txt
-desktop.ini
+*desktop.ini
 .env
+*.pyc
+__pycache__/

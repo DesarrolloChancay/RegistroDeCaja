@@ -1,3 +1,6 @@
+# Archivo: app/models/registro_venta.py
+# Se han ajustado los tipos de datos para las fechas de confirmación.
+
 from app.extensions import db
 from datetime import datetime
 
@@ -5,22 +8,24 @@ class RegistroVenta(db.Model):
     __tablename__ = 'registros_ventas'
 
     id = db.Column(db.Integer, primary_key=True)
-    fecha_comprobante = db.Column(db.Date)
     recibo = db.Column(db.String(100), unique=True)
+    medio_pago_id = db.Column(db.Integer)
+    entidad_banco_id = db.Column(db.Integer)
+    area_id = db.Column(db.Integer)
+    centro_costo_id = db.Column(db.Integer)
     detalle = db.Column(db.Text)
+    empresa_id = db.Column(db.Integer)
     monto = db.Column(db.Numeric(10, 2))
-    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
-
-    entidad_banco_id = db.Column(db.Integer, db.ForeignKey('entidades_banco.id'))
-    medio_pago_id = db.Column(db.Integer, db.ForeignKey('medios_pago.id'))
-    empresa_id = db.Column(db.Integer, db.ForeignKey('empresas.id'))
     confirmado = db.Column(db.Boolean, default=False)
-    fecha_pago_recibido = db.Column(db.Date)
+    fecha_registro_pago = db.Column(db.Date)
+    fecha_comprobante = db.Column(db.Date)
+    fecha_ingreso_cuenta = db.Column(db.Date)
+    fecha_confirmacion_redes = db.Column(db.DateTime)
+    fecha_confirmacion_gerencia = db.Column(db.DateTime)
     confirmado_redes = db.Column(db.Boolean, default=False)
-    fecha_confirmacion_redes = db.Column(db.Date)
-    fecha_confirmacion = db.Column(db.Date)
-
-    # relaciones si las necesitas (empresa, banco, etc.)
+    vendedor_id = db.Column(db.String(100))
+    confirmado_por_gerencia = db.Column(db.String(100))
+    confirmado_por_redes = db.Column(db.String(100))
 
     def estado_confirmacion(self):
         return "Confirmado" if self.confirmado else "Pendiente"

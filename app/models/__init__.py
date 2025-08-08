@@ -1,1 +1,3 @@
-from app.models.registro_venta import RegistroVenta
+# Archivo: app/models/__init__.py
+
+from .registro_venta import RegistroVenta
