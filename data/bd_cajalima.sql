@@ -65,10 +65,12 @@ CREATE TABLE registros_ventas (
     fecha_ingreso_cuenta DATE, -- Fecha que corrobora gerencia de cuando entró el pago a la cuenta
     fecha_confirmacion_redes DATETIME, -- Fecha automatica que guarda cuando se confirma por redes
     fecha_confirmacion_gerencia DATETIME, -- Fecha automatica que guarda cuando se confirma por gerencia
+    -- fecha_confirmacion_admin DATETIME,
     confirmado_redes BOOLEAN DEFAULT 0,
-    vendedor_id VARCHAR(100),
-    confirmado_por_gerencia VARCHAR(100),
-    confirmado_por_redes VARCHAR(100),
+    vendedor_id VARCHAR(100), -- eliminar
+    confirmado_por_gerencia VARCHAR(100), -- Confirmador_cuenta
+    confirmado_por_redes VARCHAR(100), -- Confirmador_voucher
+    -- confirmado_por_admin VARCHAR(100)
 
     FOREIGN KEY (empresa_id) REFERENCES empresas(id),
     FOREIGN KEY (area_id) REFERENCES areas(id),
@@ -131,22 +133,41 @@ INSERT INTO usuarios (id, nombre, correo, contrasena, rol_id) VALUES
 ('verif01', 'Sandra Verificadora', 'sandra@resource.com', 'verif123', 3);
 
 -- Insertar registros de ventas
-INSERT INTO registros_ventas (recibo, medio_pago_id, entidad_banco_id, area_id, centro_costo_id, detalle, empresa_id, monto, confirmado, fecha_registro_pago, fecha_comprobante, fecha_ingreso_cuenta, fecha_confirmacion_redes, fecha_confirmacion_gerencia, confirmado_redes, vendedor_id, confirmado_por_gerencia, confirmado_por_redes) VALUES
-('REC001', 7, 1, 1, 1, 'Venta de habitación Deluxe', 1, 450.00, 1, '2024-05-01', '2024-05-01', '2024-05-02', '2024-05-02 10:00:00', '2024-05-03 11:30:00', FALSE,  'vend01', 'admin01', 'verif01'),
-('REC002', 2, NULL, 3, 3, 'Venta de servicio de consultoría', 1, 150.50, 0, '2024-05-02', '2024-05-02', NULL, NULL, NULL, FALSE, 'vend02', NULL, NULL),
-('REC003', 3, 2, 1, 1, 'Venta de 5 noches en suite', 1, 1200.75, 1, '2024-05-03', '2024-05-03', '2024-05-04', '2024-05-03 16:20:00', '2024-05-04 10:00:00', TRUE, 'vend01', 'admin01', 'verif01'),
-('REC004', 1, NULL, 2, 2, 'Venta a grupo corporativo A', 1, 3500.00, 0, '2024-05-04', '2024-05-04', NULL, '2024-05-04 18:00:00', NULL, FALSE, 'vend02', NULL, 'verif01'),
-('REC005', 6, 3, 1, 1, 'Depósito por reserva de evento', 1, 800.00, 1, '2024-05-05', '2024-05-05', '2024-05-06', '2024-05-05 14:00:00', '2024-05-07 09:00:00', FALSE, 'vend01', 'admin01', 'verif01'),
-('REC006', 4, NULL, 3, 3, 'Venta de software', 1, 250.00, 0, '2024-05-06', '2024-05-06', NULL, NULL, NULL, FALSE, 'vend02', NULL, NULL),
-('REC007', 7, 4, 1, 1, 'Transferencia por servicio de spa', 1, 180.25, 1, '2024-05-07', '2024-05-07', '2024-05-07', '2024-05-07 11:00:00', '2024-05-08 10:30:00', TRUE, 'vend01', 'admin01', 'verif01'),
-('REC008', 3, 1, 2, 2, 'Servicios para conferencia', 1, 5500.00, 1, '2024-05-08', '2024-05-08', '2024-05-09', '2024-05-08 17:00:00', '2024-05-09 12:00:00', TRUE, 'vend02', 'admin01', 'verif01'),
-('REC009', 2, NULL, 1, 1, 'Venta de productos de la tienda', 1, 75.00, 0, '2024-05-09', '2024-05-09', NULL, NULL, NULL, FALSE, 'vend01', NULL, NULL),
-('REC010', 5, NULL, 3, 3, 'Pago de factura pendiente', 1, 320.00, 1, '2024-05-10', '2024-05-10', '2024-05-10', '2024-05-10 13:00:00', '2024-05-11 09:15:00', TRUE, 'vend02', 'admin01', 'verif01'),
-('REC011', 1, NULL, 1, 1, 'Pago por servicios de lavandería', 1, 45.00, 0, '2024-05-11', '2024-05-11', NULL, NULL, NULL, FALSE, 'vend01', NULL, NULL),
-('REC012', 6, 2, 2, 2, 'Depósito de cliente B', 1, 950.00, 1, '2024-05-12', '2024-05-12', '2024-05-13', '2024-05-13 10:00:00', '2024-05-14 11:00:00', FALSE, 'vend02', 'admin01', 'verif01'),
-('REC013', 7, 3, 3, 3, 'Pago por servicios de diseño web', 1, 600.00, 0, '2024-05-13', '2024-05-13', NULL, NULL, NULL, FALSE, 'vend01', NULL, NULL),
-('REC014', 3, 4, 1, 1, 'Venta de desayuno buffet', 1, 120.00, 1, '2024-05-14', '2024-05-14', '2024-05-15', '2024-05-14 10:00:00', '2024-05-15 10:00:00', TRUE, 'vend02', 'admin01', 'verif01'),
-('REC015', 8, NULL, 2, 2, 'Otros ingresos', 1, 25.00, 0, '2024-05-15', '2024-05-15', NULL, '2024-05-15 12:00:00', NULL, TRUE, 'vend01', NULL, 'verif01');
+INSERT INTO registros_ventas (
+    recibo,
+    medio_pago_id,
+    entidad_banco_id,
+    area_id,
+    centro_costo_id,
+    detalle,
+    empresa_id,
+    monto,
+    confirmado,
+    fecha_registro_pago,
+    fecha_comprobante,
+    fecha_ingreso_cuenta,
+    fecha_confirmacion_redes,
+    fecha_confirmacion_gerencia,
+    confirmado_redes,
+    vendedor_id,
+    confirmado_por_gerencia,
+    confirmado_por_redes
+) VALUES
+('REC001', 7, 1, 1, 1, 'Venta de habitación Deluxe', 1, 450.00, 0, '2024-05-01', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+('REC002', 2, 3, 3, 3, 'Venta de servicio de consultoría', 1, 150.50, 0, '2024-05-02', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+('REC003', 3, 2, 1, 1, 'Venta de 5 noches en suite', 1, 1200.75, 0, '2024-05-03', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+('REC004', 1, 2, 2, 2, 'Venta a grupo corporativo A', 1, 3500.00, 0, '2024-05-04', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+('REC005', 6, 3, 1, 1, 'Depósito por reserva de evento', 1, 800.00, 0, '2024-05-05', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+('REC006', 4, 4, 3, 3, 'Venta de software', 1, 250.00, 0, '2024-05-06', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+('REC007', 7, 4, 1, 1, 'Transferencia por servicio de spa', 1, 180.25, 0, '2024-05-07', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+('REC008', 3, 1, 2, 2, 'Servicios para conferencia', 1, 5500.00, 0, '2024-05-08', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+('REC009', 2, 2, 1, 1, 'Venta de productos de la tienda', 1, 75.00, 0, '2024-05-09', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+('REC010', 5, 3, 3, 3, 'Pago de factura pendiente', 1, 320.00, 0, '2024-05-10', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+('REC011', 1, 1, 1, 1, 'Pago por servicios de lavandería', 1, 45.00, 0, '2024-05-11', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+('REC012', 6, 2, 2, 2, 'Depósito de cliente B', 1, 950.00, 0, '2024-05-12', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+('REC013', 7, 3, 3, 3, 'Pago por servicios de diseño web', 1, 600.00, 0, '2024-05-13', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+('REC014', 3, 4, 1, 1, 'Venta de desayuno buffet', 1, 120.00, 0, '2024-05-14', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+('REC015', 8, 1, 2, 2, 'Otros ingresos', 1, 25.00, 0, '2024-05-15', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL);
 
 
-SELECT * FROM registros_ventas
+select * from registros_ventas
