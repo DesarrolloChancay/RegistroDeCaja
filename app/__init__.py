@@ -4,7 +4,9 @@ from app.extensions import db, login_manager
 from flask_login import login_user, logout_user, login_required, current_user
 from flask import Blueprint
 from app.models.Usuario import Usuario
-from app.controllers.gerencia_controller import *
+from app.routes import auditoria_bp
+from app.routes.admin_routes import admin_bp
+from app.controllers.auditoria_controller import create_titulo
 from flask import session
 from flask import make_response
 
@@ -23,7 +25,7 @@ def login():
             session['rol'] = user.rol.nombre
             session['name'] = user.nombre
             session['titulo'] = create_titulo(session['rol'])
-            return redirect(url_for('gerencia_bp.auditoria'))
+            return redirect(url_for('auditoria.auditoria'))
         else:
             flash('Usuario o contraseña incorrectos', 'danger')
     return render_template('login.html')
@@ -35,16 +37,6 @@ def logout():
 
     logout_user()
     return redirect(url_for('auth.login'))
-
-
-@gerencia_bp.route('/auditoria')
-@login_required
-def auditoria():
-    registros = auditoria_gerencia()
-    html = render_template('gerencia/auditoria.html', registros=registros)
-    response = make_response(html)
-    return response
-
 
 def create_app():
     app = Flask(__name__)
@@ -58,6 +50,14 @@ def create_app():
     def load_user(user_id):
         return Usuario.query.get(user_id)
 
+    @app.route('/')
+    def raiz():
+        from flask_login import current_user
+        if current_user.is_authenticated:
+            return redirect(url_for('auditoria.auditoria'))
+        else:
+            return redirect(url_for('auth.login'))
+
     # 🔹 Desactivar caché globalmente
     @app.after_request
     def add_no_cache_headers(response):
@@ -67,6 +67,12 @@ def create_app():
         return response
 
     app.register_blueprint(auth_bp)
-    app.register_blueprint(gerencia_bp)
+    app.register_blueprint(auditoria_bp)
+    app.register_blueprint(admin_bp)
+
+    # Handler global para 404
+    @app.errorhandler(404)
+    def pagina_no_encontrada(e):
+        return render_template('404.html'), 404
 
     return app

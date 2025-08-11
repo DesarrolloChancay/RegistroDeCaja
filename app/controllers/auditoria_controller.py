@@ -1,6 +1,6 @@
-# Archivo: app/controllers/gerencia_controller.py
+# Archivo: app/controllers/auditoria_controller.py
 
-from flask import Blueprint, render_template
+from flask import render_template
 from app.models.registro_venta import RegistroVenta
 from flask import request, jsonify
 from app.extensions import db
@@ -10,10 +10,8 @@ from zoneinfo import ZoneInfo
 from flask_login import login_required
 from flask_login import current_user
 
-gerencia_bp = Blueprint('gerencia_bp', __name__)
-
-def auditoria_gerencia():
-    query = """
+def auditoria_registros(fecha_desde=None, fecha_hasta=None):
+    base_query = """
         SELECT
             rv.id, rv.recibo, rv.monto, rv.detalle, rv.confirmado,
             rv.fecha_registro_pago, rv.fecha_ingreso_cuenta,
@@ -26,17 +24,22 @@ def auditoria_gerencia():
         LEFT JOIN usuarios AS u ON rv.confirmado_por_redes = u.id
         LEFT JOIN entidades_banco AS eb ON rv.entidad_banco_id = eb.id
     """
+    filtros = []  # Se crea una lista para los filtros
+    params = {}  # Se crea un diccionario
+    if fecha_desde and not fecha_hasta:
+        filtros.append("rv.fecha_registro_pago = :fecha_desde")
+        params['fecha_desde'] = fecha_desde
+    elif fecha_desde and fecha_hasta:
+        filtros.append("rv.fecha_registro_pago BETWEEN :fecha_desde AND :fecha_hasta")
+        params['fecha_desde'] = fecha_desde
+        params['fecha_hasta'] = fecha_hasta
+    if filtros:
+        base_query += " WHERE " + " AND ".join(filtros)
     with db.engine.connect() as conn:
-        result = conn.execute(text(query))
+        result = conn.execute(text(base_query), params)
         registros = [dict(row._mapping) for row in result]
-
     return registros
 
-@gerencia_bp.route("/login")
-def login():
-    return render_template("login.html")
-
-@gerencia_bp.route('/confirmar_redes/<int:registro_id>', methods=['POST'])
 def confirmar_redes(registro_id):
     """Confirma un registro desde el área de Redes con la fecha seleccionada."""
     registro = RegistroVenta.query.get(registro_id)
@@ -63,7 +66,6 @@ def confirmar_redes(registro_id):
         db.session.rollback()
         return jsonify({"success": False, "error": str(e)}), 500
 
-@gerencia_bp.route('/confirmar_gerencia/<int:registro_id>', methods=['POST'])
 def confirmar_gerencia(registro_id):
     """Confirma un registro desde Gerencia con la fecha seleccionada."""
     registro = RegistroVenta.query.get(registro_id)
@@ -97,3 +99,11 @@ def create_titulo(namesession):
         return "Gerencia"
     else:
         return "Vendedor"
+
+def formatear_numero(num):
+    if num == int(num):
+        # Si es entero
+        return f"{int(num):,}".replace(",", " ")
+    else:
+        # Si tiene decimales
+        return f"{num:,.2f}".replace(",", " ")

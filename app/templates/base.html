@@ -10,6 +10,7 @@ set Nombreusuario = session['name'] %}
 
     <!-- Tailwind y elementos -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
     <script
       src="https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1"
       type="module"
@@ -17,6 +18,58 @@ set Nombreusuario = session['name'] %}
   </head>
 
   <body class="bg-[#7c4e1a] font-sans">
+    {% if current_user.is_authenticated %}
+    <header class="bg-gradient-to-r bg-[#7c4e1a] text-white py-3 sm:py-4 shadow-md sticky top-0 z-40">
+      <div class="container mx-auto flex flex-wrap items-center justify-between px-2 sm:px-4">
+        <h1 class="text-base sm:text-xl font-bold truncate max-w-[60vw]">Gestión de Caja | {{ Nombreusuario }}</h1>
+        <!-- Botón hamburguesa -->
+        <button id="nav-toggle" class="sm:hidden flex items-center px-2 py-1 border rounded text-white border-white ml-2" aria-label="Abrir menú">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        <nav id="nav-menu" class="w-full sm:w-auto sm:flex hidden sm:items-center sm:space-x-4 mt-2 sm:mt-0">
+          {% set current_path = request.path %}
+          <a
+            href="/auditoria"
+            class="block sm:inline font-semibold px-3 py-2 sm:px-4 sm:py-2 rounded shadow mb-1 sm:mb-0 {% if current_path == '/auditoria' %}bg-[#b07c40] text-white{% else %}text-white{% endif %}"
+          >
+            Auditoría de {{ titulo }}
+          </a>
+          {% if sessionname == 'admin' %}
+          <a
+            href="/mantenimiento"
+            class="block sm:inline font-semibold px-3 py-2 sm:px-4 sm:py-2 rounded shadow mb-1 sm:mb-0 {% if current_path == '/mantenimiento' %}bg-[#b07c40] text-white{% else %}text-white{% endif %}"
+          >
+            Mantenimiento
+          </a>
+          {% endif %}
+          <a
+            href="{{ url_for('auth.logout') }}"
+            class="inline-flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 bg-red-600 text-white font-semibold rounded-lg shadow hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-1 transition"
+          >
+            <img
+              src="/static/img/logout.svg"
+              alt="Salir"
+              class="w-5 h-5"
+            />
+          </a>
+        </nav>
+      </div>
+      <script>
+        // Responsive nav
+        document.addEventListener('DOMContentLoaded', function() {
+          const navToggle = document.getElementById('nav-toggle');
+          const navMenu = document.getElementById('nav-menu');
+          if(navToggle && navMenu) {
+            navToggle.addEventListener('click', function() {
+              navMenu.classList.toggle('hidden');
+            });
+          }
+        });
+      </script>
+    </header>
+    {% endif %}
     <!-- Contenido principal -->
     <main class="container mx-auto px-4">
       {% block content %}{% endblock %}

@@ -45,6 +45,7 @@ CREATE TABLE usuarios (
     correo VARCHAR(255) UNIQUE NOT NULL,
     contrasena VARCHAR(255) NOT NULL,
     rol_id INT NOT NULL,
+    session_activa BOOLEAN DEFAULT 0, -- Verifica si la sesión está activa en otro dispositivo
     FOREIGN KEY (rol_id) REFERENCES roles(id)
 );
 
@@ -93,7 +94,7 @@ INSERT INTO roles (nombre) VALUES
 
 -- Insertar empresas
 INSERT INTO empresas (nombre) VALUES
-('Resource');
+('RESORT');
 
 -- Insertar áreas
 INSERT INTO areas (nombre) VALUES
@@ -153,21 +154,21 @@ INSERT INTO registros_ventas (
     confirmado_por_gerencia,
     confirmado_por_redes
 ) VALUES
-('REC001', 7, 1, 1, 1, 'Venta de habitación Deluxe', 1, 450.00, 0, '2024-05-01', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-('REC002', 2, 3, 3, 3, 'Venta de servicio de consultoría', 1, 150.50, 0, '2024-05-02', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-('REC003', 3, 2, 1, 1, 'Venta de 5 noches en suite', 1, 1200.75, 0, '2024-05-03', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-('REC004', 1, 2, 2, 2, 'Venta a grupo corporativo A', 1, 3500.00, 0, '2024-05-04', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-('REC005', 6, 3, 1, 1, 'Depósito por reserva de evento', 1, 800.00, 0, '2024-05-05', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-('REC006', 4, 4, 3, 3, 'Venta de software', 1, 250.00, 0, '2024-05-06', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-('REC007', 7, 4, 1, 1, 'Transferencia por servicio de spa', 1, 180.25, 0, '2024-05-07', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-('REC008', 3, 1, 2, 2, 'Servicios para conferencia', 1, 5500.00, 0, '2024-05-08', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-('REC009', 2, 2, 1, 1, 'Venta de productos de la tienda', 1, 75.00, 0, '2024-05-09', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-('REC010', 5, 3, 3, 3, 'Pago de factura pendiente', 1, 320.00, 0, '2024-05-10', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-('REC011', 1, 1, 1, 1, 'Pago por servicios de lavandería', 1, 45.00, 0, '2024-05-11', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-('REC012', 6, 2, 2, 2, 'Depósito de cliente B', 1, 950.00, 0, '2024-05-12', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-('REC013', 7, 3, 3, 3, 'Pago por servicios de diseño web', 1, 600.00, 0, '2024-05-13', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-('REC014', 3, 4, 1, 1, 'Venta de desayuno buffet', 1, 120.00, 0, '2024-05-14', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-('REC015', 8, 1, 2, 2, 'Otros ingresos', 1, 25.00, 0, '2024-05-15', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL);
+('REC001', 7, 1, 1, 1, 'Venta de habitación Deluxe', 1, 450.00, 0, '2025-08-01', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+('REC002', 2, 3, 3, 3, 'Venta de servicio de consultoría', 1, 150.50, 0, '2025-08-02', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+('REC003', 3, 2, 1, 1, 'Venta de 5 noches en suite', 1, 1200.75, 0, '2025-08-03', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+('REC004', 1, 2, 2, 2, 'Venta a grupo corporativo A', 1, 3500.00, 0, '2025-08-04', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+('REC005', 6, 3, 1, 1, 'Depósito por reserva de evento', 1, 800.00, 0, '2025-08-05', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+('REC006', 4, 4, 3, 3, 'Venta de software', 1, 250.00, 0, '2025-08-06', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+('REC007', 7, 4, 1, 1, 'Transferencia por servicio de spa', 1, 180.25, 0, '2025-08-07', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+('REC008', 3, 1, 2, 2, 'Servicios para conferencia', 1, 5500.00, 0, '2025-08-08', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+('REC009', 2, 2, 1, 1, 'Venta de productos de la tienda', 1, 75.00, 0, '2025-08-09', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+('REC010', 5, 3, 3, 3, 'Pago de factura pendiente', 1, 320.00, 0, '2025-08-10', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+('REC011', 1, 1, 1, 1, 'Pago por servicios de lavandería', 1, 45.00, 0, '2025-08-11', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+('REC012', 6, 2, 2, 2, 'Depósito de cliente B', 1, 950.00, 0, '2025-08-12', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+('REC013', 7, 3, 3, 3, 'Pago por servicios de diseño web', 1, 600.00, 0, '2025-08-13', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+('REC014', 3, 4, 1, 1, 'Venta de desayuno buffet', 1, 120.00, 0, '2025-08-14', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+('REC015', 8, 1, 2, 2, 'Otros ingresos', 1, 25.00, 0, '2025-08-15', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL);
 
 
 select * from registros_ventas
