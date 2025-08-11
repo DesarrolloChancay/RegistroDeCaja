@@ -1,4 +1,4 @@
-from .user_routes import user_bp
-
-def register_routes(app):
-    app.register_blueprint(user_bp)
+# Archivo: app/routes/__init__.py
+# Este archivo permite importar todos los blueprints de rutas fácilmente
+from .auditoria_routes import auditoria_bp
+# Agrega aquí más blueprints según los vayas creando

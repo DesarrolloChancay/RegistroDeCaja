@@ -1,0 +1,68 @@
+{% set sessionname = session['rol'] %} {% set titulo = session['titulo'] %} {% set Nombreusuario = session['name'] %}
+
+{% if registros|length == 0 %}
+<tr>
+  <td colspan="20" class="text-center py-8 text-gray-500">No se encontraron resultados para el filtro seleccionado.</td>
+</tr>
+{% else %}
+{% for r in registros %}
+{% set color = "green" if r.confirmado_redes == 1 and r.confirmado == 1 or sessionname == 'vendedor' else "yellow" %}
+<tr class="bg-white border-b">
+  <td class="px-4 py-2">
+    {{ r.fecha_registro_pago.strftime('%d-%m-%Y') if r.fecha_registro_pago else 'N/A' }}
+  </td>
+  <td class="px-4 py-2">{{ r.recibo }}</td>
+  <td class="px-4 py-2">{{ r.nombre_usuario }}</td>
+  <td class="px-4 py-2">{{ r.empresa_nombre }}</td>
+  <td class="px-4 py-2">{{ r.entidad_banco_nombre }}</td>
+  <td class="px-4 py-2">{{ formatear_numero(r.monto) }}</td>
+  <td class="px-4 py-2">{{ r.detalle }}</td>
+  <td class="px-4 py-2">
+    {% if r.fecha_comprobante %}
+      <div class="flex items-center gap-2">
+        <input type="date" class="border border-gray-300 rounded px-3 py-2" id="fecha_redes_{{ r.id }}" value="{{ r.fecha_comprobante.strftime('%Y-%m-%d') }}" {% if sessionname != 'admin' %}disabled{% endif %} />
+        {% if sessionname == 'admin' %}
+          <button class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold" onclick="guardarFechaVoucher('{{ r.id }}')">Guardar</button>
+        {% endif %}
+      </div>
+    {% else %}
+      <input type="date" class="border border-gray-300 rounded px-3 py-2" id="fecha_redes_{{ r.id }}" />
+      {% if sessionname == 'admin' %}
+        <button class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold" onclick="guardarFechaVoucher('{{ r.id }}')">Guardar</button>
+      {% endif %}
+    {% endif %}
+  </td>
+  <td class="px-4 py-2">
+    {% if r.confirmado_redes %}
+    <span class="focus:outline-none text-white bg-{{ color }}-400 hover:bg-{{ color }}-500 focus:ring-4 focus:ring-{{ color }}-300 font-medium rounded-lg text-sm px-3 py-1 dark:focus:ring-{{ color }}-900">Confirmado</span>
+    {% else %}
+    <button class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-3 py-1 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800" onclick="confirmarRedes('{{ r.id }}')">Confirmar</button>
+    {% endif %}
+  </td>
+  {% if sessionname == 'admin' or sessionname == 'verificador' %}
+  <td class="px-4 py-2">
+    {% if r.fecha_ingreso_cuenta %}
+      <div class="flex items-center gap-2">
+        <input type="date" class="border border-gray-300 rounded px-3 py-2" id="fecha_ingreso_cuenta_{{ r.id }}" value="{{ r.fecha_ingreso_cuenta.strftime('%Y-%m-%d') }}" {% if sessionname != 'admin' %}disabled{% endif %} />
+        {% if sessionname == 'admin' %}
+          <button class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold" onclick="guardarFechaIngreso('{{ r.id }}')">Guardar</button>
+        {% endif %}
+      </div>
+    {% else %}
+      <input type="date" class="border border-gray-300 rounded px-3 py-2" id="fecha_ingreso_cuenta_{{ r.id }}" />
+      {% if sessionname == 'admin' %}
+        <button class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold" onclick="guardarFechaIngreso('{{ r.id }}')">Guardar</button>
+      {% endif %}
+    {% endif %}
+  </td>
+  <td class="px-4 py-2 text-center">
+    {% if r.confirmado %}
+    <span class="focus:outline-none text-white bg-green-400 hover:bg-green-500 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-3 py-1 dark:focus:ring-green-900">Confirmado</span>
+    {% else %}
+    <button class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-3 py-1 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800" onclick="confirmarGerencia('{{ r.id }}')">Confirmar</button>
+    {% endif %}
+  </td>
+  {% endif %}
+</tr>
+{% endfor %}
+{% endif %}
