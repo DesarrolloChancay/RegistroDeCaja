@@ -18,18 +18,18 @@
   <td class="px-4 py-2">{{ formatear_numero(r.monto) }}</td>
   <td class="px-4 py-2">{{ r.detalle }}</td>
   <td class="px-4 py-2">
-    {% if r.fecha_comprobante %}
+    {# Solo mostrar input editable si NO está confirmado en redes, si está confirmado mostrar la fecha como texto #}
+    {% if not r.confirmado_redes or sessionname == 'admin' %}
       <div class="flex items-center gap-2">
-        <input type="date" class="border border-gray-300 rounded px-3 py-2" id="fecha_redes_{{ r.id }}" value="{{ r.fecha_comprobante.strftime('%Y-%m-%d') }}" {% if sessionname != 'admin' %}disabled{% endif %} />
+        <input type="date" class="border border-gray-300 rounded px-3 py-2" id="fecha_redes_{{ r.id }}"
+          value="{% if sessionname == 'vendedor' %}{{ r.fecha_registro_pago.strftime('%Y-%m-%d') if r.fecha_registro_pago else '' }}{% else %}{{ r.fecha_comprobante.strftime('%Y-%m-%d') if r.fecha_comprobante else '' }}{% endif %}"
+        />
         {% if sessionname == 'admin' %}
           <button class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold" onclick="guardarFechaVoucher('{{ r.id }}')">Guardar</button>
         {% endif %}
       </div>
     {% else %}
-      <input type="date" class="border border-gray-300 rounded px-3 py-2" id="fecha_redes_{{ r.id }}" />
-      {% if sessionname == 'admin' %}
-        <button class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold" onclick="guardarFechaVoucher('{{ r.id }}')">Guardar</button>
-      {% endif %}
+      <span>{{ r.fecha_comprobante.strftime('%d-%m-%Y') if r.fecha_comprobante else 'N/A' }}</span>
     {% endif %}
   </td>
   <td class="px-4 py-2">
@@ -39,29 +39,37 @@
     <button class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-3 py-1 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800" onclick="confirmarRedes('{{ r.id }}')">Confirmar</button>
     {% endif %}
   </td>
-  {% if sessionname == 'admin' or sessionname == 'verificador' %}
-  <td class="px-4 py-2">
-    {% if r.fecha_ingreso_cuenta %}
-      <div class="flex items-center gap-2">
-        <input type="date" class="border border-gray-300 rounded px-3 py-2" id="fecha_ingreso_cuenta_{{ r.id }}" value="{{ r.fecha_ingreso_cuenta.strftime('%Y-%m-%d') }}" {% if sessionname != 'admin' %}disabled{% endif %} />
-        {% if sessionname == 'admin' %}
-          <button class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold" onclick="guardarFechaIngreso('{{ r.id }}')">Guardar</button>
+  {% if sessionname == 'admin' or sessionname == 'verificador' or sessionname == 'contabilidad' %}
+    {% if not r.confirmado or sessionname == 'admin' %}
+      <td class="px-4 py-2">
+        <div class="flex items-center gap-2">
+          {% if sessionname == 'contabilidad' %}
+            <span>{{ r.fecha_comprobante.strftime('%d-%m-%Y') if r.fecha_comprobante else 'N/A' }}</span>
+          {% else %}
+            <input type="date" class="border border-gray-300 rounded px-3 py-2" id="fecha_ingreso_cuenta_{{ r.id }}"
+              value="{{ r.fecha_comprobante.strftime('%Y-%m-%d') if r.fecha_comprobante else '' }}"
+            />
+          {% endif %}
+          {% if sessionname == 'admin' %}
+            <button class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold" onclick="guardarFechaIngreso('{{ r.id }}')">Guardar</button>
+          {% endif %}
+        </div>
+      </td>
+      <td class="px-4 py-2 text-center">
+        {% if sessionname == 'contabilidad' %}
+          <span class="focus:outline-none text-white bg-{{ color }}-400 hover:bg-{{ color }}-500 focus:ring-4 focus:ring-{{ color }}-300 font-medium rounded-lg text-sm px-3 py-1 dark:focus:ring-{{ color }}-900">Confirmar</span>
+        {% else %}
+          <button class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-3 py-1 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800" onclick="confirmarGerencia('{{ r.id }}')">Confirmar</button>
         {% endif %}
-      </div>
+      </td>
     {% else %}
-      <input type="date" class="border border-gray-300 rounded px-3 py-2" id="fecha_ingreso_cuenta_{{ r.id }}" />
-      {% if sessionname == 'admin' %}
-        <button class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold" onclick="guardarFechaIngreso('{{ r.id }}')">Guardar</button>
-      {% endif %}
+      <td class="px-4 py-2">
+        <span>{{ r.fecha_ingreso_cuenta.strftime('%d-%m-%Y') if r.fecha_ingreso_cuenta else 'N/A' }}</span>
+      </td>
+      <td class="px-4 py-2 text-center">
+        <span class="focus:outline-none text-white bg-green-400 hover:bg-green-500 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-3 py-1 dark:focus:ring-green-900">Confirmado</span>
+      </td>
     {% endif %}
-  </td>
-  <td class="px-4 py-2 text-center">
-    {% if r.confirmado %}
-    <span class="focus:outline-none text-white bg-green-400 hover:bg-green-500 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-3 py-1 dark:focus:ring-green-900">Confirmado</span>
-    {% else %}
-    <button class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-3 py-1 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800" onclick="confirmarGerencia('{{ r.id }}')">Confirmar</button>
-    {% endif %}
-  </td>
   {% endif %}
 </tr>
 {% endfor %}

@@ -1,3 +1,4 @@
+
 # Archivo: app/controllers/auditoria_controller.py
 
 from app.models.registro_venta import RegistroVenta
@@ -7,8 +8,10 @@ from datetime import datetime
 from sqlalchemy import text
 from zoneinfo import ZoneInfo
 from flask_login import current_user
+from flask_login import login_required
+from sqlalchemy.orm import sessionmaker
 
-def auditoria_registros(fecha_desde=None, fecha_hasta=None, estado_confirmacion=None):
+def auditoria_registros(fecha_desde=None, fecha_hasta=None, estado_confirmacion=None, orden_campo=None, orden_dir=None):
     base_query = """
         SELECT
             rv.id, rv.recibo, rv.monto, rv.detalle, rv.confirmado,
@@ -57,6 +60,27 @@ def auditoria_registros(fecha_desde=None, fecha_hasta=None, estado_confirmacion=
             filtros.append("(rv.confirmado_redes = 1 AND rv.confirmado = 1)")
     if filtros:
         base_query += " WHERE " + " AND ".join(filtros)
+    # Orden dinámico
+    campo = None
+    if orden_campo in ['fecha_confirmacion_redes', 'fecha_confirmacion_gerencia', 'fecha_registro_pago']:
+        campo = orden_campo
+    else:
+        # fallback por rol y estado
+        if estado_confirmacion == 'por_confirmar':
+            if nombre_rol == 'admin' or nombre_rol == 'verificador':
+                campo = 'fecha_confirmacion_redes'
+            else:
+                campo = 'fecha_registro_pago'
+        elif estado_confirmacion == 'confirmados':
+            if nombre_rol == 'vendedor':
+                campo = 'fecha_confirmacion_redes'
+            elif nombre_rol == 'verificador' or nombre_rol == 'admin':
+                campo = 'fecha_confirmacion_gerencia'
+    direccion = 'DESC'
+    if orden_dir and str(orden_dir).lower() in ['asc', 'desc']:
+        direccion = orden_dir.upper()
+    if campo:
+        base_query += f" ORDER BY rv.{campo} {direccion}"
     with db.engine.connect() as conn:
         result = conn.execute(text(base_query), params)
         registros = [dict(row._mapping) for row in result]
@@ -143,6 +167,8 @@ def create_titulo(namesession):
         return "Mantenimiento"
     elif namesession == 'verificador':
         return "Gerencia"
+    elif namesession == 'contabilidad':
+        return "Contabilidad"
     else:
         return "Vendedor"
 
@@ -160,3 +186,72 @@ def obtener_ip():
     else:
         ip = request.remote_addr or ''
     return ip
+
+# --- Confirmación masiva para vendedor y verificador ---
+def confirmar_redes_masivo():
+    from flask import request, jsonify
+    from .auditoria_controller import obtener_ip
+    if not hasattr(current_user, 'rol') or current_user.rol.nombre != 'vendedor':
+        return jsonify({'success': False, 'error': 'No autorizado'}), 403
+    try:
+        data = request.get_json()
+        registros = data.get('registros', [])
+        if not registros:
+            return jsonify({'success': False, 'error': 'No hay registros'}), 400
+        ip = obtener_ip()
+        Session = sessionmaker(bind=db.engine)
+        with db.engine.begin() as connection:
+            session = Session(bind=connection)
+            for reg in registros:
+                id = reg.get('id')
+                fecha = reg.get('fecha')
+                if not id or not fecha:
+                    continue
+                connection.execute(text("CALL SetAuditContext(:user_id, :reason, :ip)"),
+                    {"user_id": current_user.id, "reason": "Confirmación masiva redes", "ip": ip})
+                rv = session.get(RegistroVenta, id)
+                if rv and not rv.confirmado_redes:
+                    rv.fecha_comprobante = datetime.strptime(fecha, "%Y-%m-%d").date()
+                    rv.confirmado_redes = 1
+                    rv.confirmador_voucher = current_user.id
+                    rv.fecha_confirmacion_redes = datetime.now(ZoneInfo("America/Lima"))
+            session.commit()
+            connection.execute(text("CALL ClearAuditContext()"))
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def confirmar_gerencia_masivo():
+    from flask import request, jsonify
+    from .auditoria_controller import obtener_ip
+    if not hasattr(current_user, 'rol') or current_user.rol.nombre != 'verificador':
+        return jsonify({'success': False, 'error': 'No autorizado'}), 403
+    try:
+        data = request.get_json()
+        registros = data.get('registros', [])
+        if not registros:
+            return jsonify({'success': False, 'error': 'No hay registros'}), 400
+        ip = obtener_ip()
+        Session = sessionmaker(bind=db.engine)
+        with db.engine.begin() as connection:
+            session = Session(bind=connection)
+            for reg in registros:
+                id = reg.get('id')
+                fecha = reg.get('fecha')
+                if not id or not fecha:
+                    continue
+                connection.execute(text("CALL SetAuditContext(:user_id, :reason, :ip)"),
+                    {"user_id": current_user.id, "reason": "Confirmación masiva gerencia", "ip": ip})
+                rv = session.get(RegistroVenta, id)
+                if rv and not rv.confirmado:
+                    rv.fecha_ingreso_cuenta = datetime.strptime(fecha, "%Y-%m-%d").date()
+                    rv.confirmado = 1
+                    rv.confirmador_cuenta = current_user.id
+                    rv.fecha_confirmacion_gerencia = datetime.now(ZoneInfo("America/Lima"))
+            session.commit()
+            connection.execute(text("CALL ClearAuditContext()"))
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500

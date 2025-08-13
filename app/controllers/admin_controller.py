@@ -1,5 +1,3 @@
-
-
 # Archivo: app/controllers/admin_controller.py
 
 from flask import render_template, request, jsonify
@@ -12,7 +10,13 @@ from app.models.registro_venta import RegistroVenta
 from sqlalchemy import text
 from zoneinfo import ZoneInfo
 from datetime import datetime
+import bcrypt
 
+
+# Función para hashear contraseñas
+def hash_password(password: str) -> str:
+    hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+    return hashed.decode('utf-8')
 
 
 # Decorador para restringir solo a admin
@@ -36,24 +40,23 @@ def tabla_registrosauditoria():
     fecha_desde = request.form.get('fecha_desde')
     fecha_hasta = request.form.get('fecha_hasta')
     busqueda = request.form.get('busqueda', '').strip()
-    # Consulta base
-    sql = '''SELECT * FROM v_auditoria_registros WHERE 1=1'''
+    # Consulta base solo filtros
+    sql_base = '''SELECT * FROM v_auditoria_registros WHERE 1=1'''
     params = {}
+    orden_campo = request.form.get('orden_campo')
+    orden_dir = request.form.get('orden_dir')
     if fecha_desde and not fecha_hasta:
-        # Solo "desde": mostrar solo esa fecha
-        sql += ' AND DATE(fecha_cambio) = :fecha_desde'
+        sql_base += ' AND DATE(fecha_cambio) = :fecha_desde'
         params['fecha_desde'] = fecha_desde
     elif fecha_desde and fecha_hasta:
-        # Rango entre ambas
-        sql += ' AND fecha_cambio >= :fecha_desde AND fecha_cambio <= :fecha_hasta'
+        sql_base += ' AND fecha_cambio >= :fecha_desde AND fecha_cambio <= :fecha_hasta'
         params['fecha_desde'] = fecha_desde
         params['fecha_hasta'] = fecha_hasta
     elif fecha_hasta and not fecha_desde:
-        # Solo "hasta": mostrar solo esa fecha
-        sql += ' AND DATE(fecha_cambio) = :fecha_hasta'
+        sql_base += ' AND DATE(fecha_cambio) = :fecha_hasta'
         params['fecha_hasta'] = fecha_hasta
     if busqueda:
-        sql += ''' AND (
+        sql_base += ''' AND (
             recibo LIKE :b OR
             usuario_nombre LIKE :b OR
             accion LIKE :b OR
@@ -64,9 +67,17 @@ def tabla_registrosauditoria():
             ip_usuario LIKE :b
         )'''
         params['b'] = f'%{busqueda}%'
-    sql += ' ORDER BY fecha_cambio DESC'
+    # Conteo total sin ORDER ni LIMIT
+    total = db.session.execute(text(f'SELECT COUNT(*) FROM ({sql_base}) as t'), params).scalar()
+    # Ordenamiento dinámico seguro
+    campo = 'fecha_cambio'
+    if orden_campo in ['fecha_confirmacion_redes', 'fecha_confirmacion_gerencia', 'fecha_cambio']:
+        campo = orden_campo
+    direccion = 'DESC'
+    if orden_dir and str(orden_dir).lower() in ['asc', 'desc']:
+        direccion = orden_dir.upper()
+    sql = sql_base + f' ORDER BY {campo} {direccion}'
     # Paginación
-    total = db.session.execute(text(f'SELECT COUNT(*) FROM ({sql}) as t'), params).scalar()
     inicio = (pagina - 1) * por_pagina
     sql += ' LIMIT :lim OFFSET :off'
     params['lim'] = por_pagina
@@ -100,7 +111,7 @@ def editar_fecha_voucher():
                 {"user_id": current_user.id, "reason": motivo, "ip": ip}
             )
             reg = session.get(RegistroVenta, registro_id)
-            reg.fecha_comprobante = datetime.strptime(nueva_fecha, "%d-%m-%Y").date()
+            reg.fecha_comprobante = datetime.strptime(nueva_fecha, "%Y-%m-%d").date()
             reg.vendedor_id = current_user.id
             session.commit()
             connection.execute(text("CALL ClearAuditContext()"))
@@ -132,7 +143,7 @@ def editar_fecha_ingreso():
                 {"user_id": current_user.id, "reason": motivo, "ip": ip}
             )
             reg = session.get(RegistroVenta, registro_id)
-            reg.fecha_ingreso_cuenta = datetime.strptime(nueva_fecha, "%d-%m-%Y").date()
+            reg.fecha_ingreso_cuenta = datetime.strptime(nueva_fecha, "%Y-%m-%d").date()
             reg.vendedor_id = current_user.id
             session.commit()
             connection.execute(text("CALL ClearAuditContext()"))
@@ -252,7 +263,7 @@ def agregar_usuario():
     idu = request.form.get('id')
     nombre = request.form.get('nombre')
     correo = request.form.get('correo')
-    contrasena = request.form.get('contrasena')
+    contrasena = hash_password(request.form.get('contrasena'))
     rol = request.form.get('rol')
     if not (idu and nombre and correo and contrasena and rol):
         return jsonify({'success': False, 'error': 'Todos los campos son requeridos'})

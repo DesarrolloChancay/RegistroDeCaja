@@ -4,13 +4,16 @@ function cargarTablaRegistrosAuditoriaAdmin(pagina = 1) {
     let fecha_desde = $('#fecha_desde_admin').val();
     let fecha_hasta = $('#fecha_hasta_admin').val();
     let busqueda = $('#buscador-general-admin').val();
+    // Ordenamiento
+    let orden_dir = window.ordenFechaAdmin || 'desc';
+    let campoOrden = (window.sessionRol === 'admin' || window.sessionRol === 'verificador') ? 'fecha_confirmacion_gerencia' : 'fecha_confirmacion_redes';
     $.post('/admin/registrosauditoria/tabla', {
         pagina: pagina,
         por_pagina: por_pagina,
         fecha_desde: fecha_desde,
         fecha_hasta: fecha_hasta,
         busqueda: busqueda
-    }, function(res) {
+    }, function (res) {
         $('#registros_auditoria_admin').html(res.html);
         // Paginación
         let desde = res.total === 0 ? 0 : ((pagina - 1) * por_pagina) + 1;
@@ -58,6 +61,41 @@ function cargarTablaRegistrosAuditoriaAdmin(pagina = 1) {
 }
 
 $(document).ready(function () {
+    // Estado de pestaña (por confirmar/confirmados)
+    let estadoConfirmacionAdmin = 'por_confirmar';
+    let ordenFechaAdmin = 'desc';
+
+    // Mostrar/ocultar botón de orden según estado
+    function actualizarBotonOrdenAdmin() {
+        if (estadoConfirmacionAdmin === 'confirmados') {
+            $('#btn-ordenar-fecha-admin').show();
+        } else {
+            $('#btn-ordenar-fecha-admin').hide();
+        }
+    }
+    actualizarBotonOrdenAdmin();
+
+    // Si tienes tabs, actualiza estadoConfirmacionAdmin y llama actualizarBotonOrdenAdmin() en el click
+    $(document).on('click', '.tab-auditoria', function () {
+        estadoConfirmacionAdmin = $(this).data('estado');
+        actualizarBotonOrdenAdmin();
+        cargarTablaRegistrosAuditoriaAdmin(1);
+    });
+
+    // Lógica de botón de orden
+    $('#btn-ordenar-fecha-admin').on('click', function () {
+        ordenFechaAdmin = (ordenFechaAdmin === 'desc') ? 'asc' : 'desc';
+        window.ordenFechaAdmin = ordenFechaAdmin;
+        $('#icono-orden-admin').html(ordenFechaAdmin === 'desc' ? '&#10597;' : '&#10595;');
+        let msg = ordenFechaAdmin === 'desc' ? 'Se ha ordenado de mayor a menor' : 'Se ha ordenado de menor a mayor';
+        if (typeof mostrarAlerta === 'function') {
+            mostrarAlerta(msg, 'success');
+        } else {
+            // fallback simple
+            alert(msg);
+        }
+        cargarTablaRegistrosAuditoriaAdmin(1);
+    });
     // Inicial: cargar primera página
     if ($('#registros_auditoria_admin').length) {
         cargarTablaRegistrosAuditoriaAdmin(1);
@@ -76,7 +114,7 @@ $(document).ready(function () {
         function setPaginaActual(pag) { paginaActual = pag; }
         // Sobrescribir cargarTablaRegistrosAuditoriaAdmin para guardar página
         const cargarOriginal = cargarTablaRegistrosAuditoriaAdmin;
-        cargarTablaRegistrosAuditoriaAdmin = function(pag) {
+        cargarTablaRegistrosAuditoriaAdmin = function (pag) {
             setPaginaActual(pag);
             cargarOriginal(pag);
         };
@@ -108,22 +146,22 @@ function guardarFechaVoucher(id) {
         titulo: 'Confirmar edición de fecha de voucher',
         mensaje: mensaje,
         textoBoton: 'Guardar fecha',
-        onConfirm: function(motivo) {
+        onConfirm: function (motivo) {
             $.ajax({
                 url: '/admin/editar_fecha_voucher',
                 method: 'POST',
                 data: { id: id, fecha: fecha, motivo: motivo },
-                success: function(resp) {
+                success: function (resp) {
                     if (resp.success) { location.reload(); } else { alert(resp.error || 'Error al guardar'); }
                 },
-                error: function(xhr) {
+                error: function (xhr) {
                     alert('Error en el servidor: ' + (xhr.responseJSON?.error || xhr.statusText));
                 }
             });
         }
     });
     // Insertar textarea de motivo solo para admin después de abrir el modal
-    setTimeout(function() {
+    setTimeout(function () {
         if (window.sessionRol === 'admin') {
             var $motivoDestino = $('#motivo-admin-modal-destino');
             $motivoDestino.empty();
@@ -149,22 +187,22 @@ function guardarFechaIngreso(id) {
         titulo: 'Confirmar edición de fecha de ingreso',
         mensaje: mensaje,
         textoBoton: 'Guardar fecha',
-        onConfirm: function(motivo) {
+        onConfirm: function (motivo) {
             $.ajax({
                 url: '/admin/editar_fecha_ingreso',
                 method: 'POST',
                 data: { id: id, fecha: fecha, motivo: motivo },
-                success: function(resp) {
+                success: function (resp) {
                     if (resp.success) { location.reload(); } else { alert(resp.error || 'Error al guardar'); }
                 },
-                error: function(xhr) {
+                error: function (xhr) {
                     alert('Error en el servidor: ' + (xhr.responseJSON?.error || xhr.statusText));
                 }
             });
         }
     });
     // Insertar textarea de motivo solo para admin después de abrir el modal
-    setTimeout(function() {
+    setTimeout(function () {
         if (window.sessionRol === 'admin') {
             var $motivoDestino = $('#motivo-admin-modal-destino');
             $motivoDestino.empty();
@@ -192,13 +230,48 @@ function abrirModalAgregar(tab, campos) {
                   <option value="admin">Admin</option>
                   <option value="verificador">Verificador</option>
                   <option value="vendedor">Vendedor</option>
+                  <option value="contabilidad">Contabilidad</option>
                 </select>
             </label>`;
         } else if (tab === 'usuarios' && campo.nombre === 'contrasena') {
             html += `<label class="flex flex-col gap-1">
                 <span class="text-sm font-semibold">${campo.placeholder}</span>
-                <input type="password" name="${campo.nombre}" class="border rounded px-2 py-1 text-sm" required />
-            </label>`;
+                <div class="relative w-full max-w-sm">
+                    <input type="password" id="input-${campo.nombre}_new" name="${campo.nombre}" class="border rounded px-2 py-1 text-sm w-100" required />
+                    <button
+                        type="button"
+                        id="togglePassword"
+                        class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700"
+                    >
+                        <!-- Ícono del ojito -->
+                        <svg id="eyeOpen" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        <svg id="eyeClosed" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.956 9.956 0 012.104-3.362M9.88 9.88a3 3 0 104.24 4.24M6.1 6.1l11.8 11.8" />
+                        </svg>
+                    </button>
+                </div>
+            </label>
+            <script>
+                $("#togglePassword").on("click", function () {
+                    const password = $("#input-contrasena_new");
+                    const eyeOpen = $("#eyeOpen");
+                    const eyeClosed = $("#eyeClosed");
+
+                    if (password.attr("type") === "password") {
+                        password.attr("type", "text");
+                        eyeOpen.addClass("hidden");
+                        eyeClosed.removeClass("hidden");
+                    } else {
+                        password.attr("type", "password");
+                        eyeOpen.removeClass("hidden");
+                        eyeClosed.addClass("hidden");
+                    }
+                });
+            </script>
+            `;
         } else {
             html += `<label class="flex flex-col gap-1">
                 <span class="text-sm font-semibold">${campo.placeholder}</span>

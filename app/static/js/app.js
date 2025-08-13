@@ -17,7 +17,19 @@ $(document).ready(function () {
     }, 4000);
 });
 
-
+function mostrarAlerta(mensaje, tipo = 'success') {
+    // Elimina alertas previas
+    $('.alert-auditoria').remove();
+    let color = tipo === 'success' ? 'bg-green-500' : 'bg-red-500';
+    let html = `<div class="alert-auditoria fixed top-4 left-1/2 transform -translate-x-1/2 z-50 ${color} text-white px-6 py-3 rounded shadow transition-all opacity-0">${mensaje}</div>`;
+    $('body').append(html);
+    let $alert = $('.alert-auditoria');
+    setTimeout(() => $alert.removeClass('opacity-0').addClass('opacity-100'), 50);
+    setTimeout(() => {
+        $alert.removeClass('opacity-100').addClass('opacity-0');
+        setTimeout(() => $alert.remove(), 500);
+    }, 3000);
+}
 
 $('#btn-exportar').on('click', function () {
     window.location.href = '/auditoria/exportar';
@@ -29,13 +41,21 @@ let paginaActual = 1;
 let registrosPorPagina = 10;
 let filtrosActuales = {};
 let estadoConfirmacion = 'por_confirmar'; // por defecto
+let ordenFecha = 'desc'; // asc o desc
 
 function cargarPaginaAuditoria(pagina, filtros = null) {
     if (filtros !== null) filtrosActuales = filtros;
+    // Determinar campo de orden según rol
+    let campoOrden = 'fecha_confirmacion_redes';
+    if (window.sessionRol === 'admin' || window.sessionRol === 'verificador') {
+        campoOrden = 'fecha_confirmacion_gerencia';
+    }
     $.post('/auditoria/tabla', {
         pagina: pagina,
         por_pagina: registrosPorPagina,
         estado_confirmacion: estadoConfirmacion,
+        orden_campo: campoOrden,
+        orden_dir: ordenFecha,
         ...filtrosActuales
     }, function (res) {
         if (typeof res === 'string') {
@@ -101,16 +121,104 @@ function cargarPaginaAuditoria(pagina, filtros = null) {
     }, 'json');
 }
 
+
 $(document).ready(function () {
+    // --- Botón Confirmar Masivo (solo vendedor y verificador) ---
+    if (window.sessionRol === 'vendedor' || window.sessionRol === 'verificador') {
+        const btnMasivo = `<button id="btn-confirmar-masivo" class="ml-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-semibold text-sm">Confirmar masivo</button>`;
+        $('#paginacion_auditoria').append(btnMasivo);
+    }
+
+    // Handler para Confirmar Masivo
+    $(document).on('click', '#btn-confirmar-masivo', function () {
+        let datos = [];
+        // Solo inputs de la tabla visible (página actual)
+        let $filas = $('#registros_auditoria tr').not('#no-registros-row');
+        if (window.sessionRol === 'vendedor') {
+            $filas.each(function () {
+                let $input = $(this).find('input[id^="fecha_redes_"]');
+                if ($input.length && $input.val() && !$input.prop('disabled')) {
+                    const id = $input.attr('id').replace('fecha_redes_', '');
+                    datos.push({ id, fecha: $input.val() });
+                }
+            });
+        } else if (window.sessionRol === 'verificador') {
+            $filas.each(function () {
+                let $input = $(this).find('input[id^="fecha_ingreso_cuenta_"]');
+                if ($input.length && $input.val() && !$input.prop('disabled')) {
+                    const id = $input.attr('id').replace('fecha_ingreso_cuenta_', '');
+                    datos.push({ id, fecha: $input.val() });
+                }
+            });
+        }
+        if (datos.length === 0) {
+            mostrarAlerta('No hay fechas seleccionadas para confirmar.', 'error');
+            return;
+        }
+        mostrarDialogoConfirmacion({
+            titulo: 'Confirmación masiva',
+            mensaje: '¿Estás seguro de que deseas confirmar masivamente? <br>Revisa bien las fechas antes de continuar. Esta acción es irreversible.',
+            textoBoton: 'Confirmar todo',
+            onConfirm: function () {
+                $.ajax({
+                    url: window.sessionRol === 'vendedor' ? '/confirmar_redes_masivo' : '/confirmar_gerencia_masivo',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ registros: datos }),
+                    success: function (resp) {
+                        if (resp.success) {
+                            mostrarAlerta('¡Confirmación masiva exitosa!', 'success');
+                            actualizarTablaAuditoria();
+                        } else {
+                            mostrarAlerta(resp.error || 'Error al confirmar masivo.', 'error');
+                        }
+                    },
+                    error: function (xhr) {
+                        mostrarAlerta('Error en el servidor: ' + (xhr.responseJSON?.error || xhr.statusText), 'error');
+                    }
+                });
+            }
+        });
+    });
+
     // Inicial: cargar primera página
     cargarPaginaAuditoria(1, {});
+
+    // Mostrar/ocultar botón de orden según estado
+    function actualizarBotonOrden() {
+        if (estadoConfirmacion === 'confirmados') {
+            $('#btn-ordenar-fecha').show();
+            $('#btn-confirmar-masivo').hide();
+        } else {
+            $('#btn-ordenar-fecha').hide();
+            $('#btn-confirmar-masivo').show();
+        }
+    }
+    actualizarBotonOrden();
 
     // Tabs de registros por confirmar/confirmados
     $(document).on('click', '.tab-auditoria', function () {
         $('.tab-auditoria').removeClass('bg-[#b07c40] text-white').addClass('bg-gray-300 text-gray-700');
         $(this).removeClass('bg-gray-300 text-gray-700').addClass('bg-[#b07c40] text-white');
-        estadoConfirmacion = $(this).data('estado');
+    estadoConfirmacion = $(this).data('estado');
+    actualizarBotonOrden();
+    cargarPaginaAuditoria(1, {});
+    // Lógica de botón de orden
+    $('#btn-ordenar-fecha').on('click', function () {
+        // Alternar dirección
+        ordenFecha = (ordenFecha === 'desc') ? 'asc' : 'desc';
+        // Cambiar icono
+        $('#icono-orden').html(ordenFecha === 'desc' ? '&#10597;' : '&#10595;');
+
+        if (ordenFecha === 'desc') {
+            msg = 'Se ha ordenado de mayor a menor'
+            mostrarAlerta(msg, 'success');
+        } else {
+            msg = 'Se ha ordenado de menor a mayor'
+            mostrarAlerta(msg, 'success');
+        }
         cargarPaginaAuditoria(1, {});
+    });
     });
 
     $('#select-registros-pagina').on('change', function () {

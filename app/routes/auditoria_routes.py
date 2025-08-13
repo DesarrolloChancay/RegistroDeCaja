@@ -1,3 +1,4 @@
+from app.controllers.auditoria_controller import confirmar_redes_masivo, confirmar_gerencia_masivo
 from flask import send_file
 import io
 import pandas as pd
@@ -25,7 +26,7 @@ def fechas_extremos():
 @login_required
 def exportar_auditoria():
     # Solo admin y verificador pueden exportar
-    if not hasattr(current_user, 'rol') or current_user.rol.nombre not in ('admin', 'verificador'):
+    if not hasattr(current_user, 'rol') or current_user.rol.nombre not in ('admin', 'verificador', 'contabilidad'):
         return render_template('403.html'), 403
 
     # Traer todos los registros con los campos y joins necesarios
@@ -105,8 +106,11 @@ def auditoria_tabla():
     fecha_desde = request.form.get('fecha_desde')
     fecha_hasta = request.form.get('fecha_hasta')
     estado_confirmacion = request.form.get('estado_confirmacion', 'por_confirmar')
+    # Ordenamiento
+    orden_campo = request.form.get('orden_campo')
+    orden_dir = request.form.get('orden_dir')
     # Traer todos los registros filtrados
-    registros_all = auditoria_registros(fecha_desde, fecha_hasta, estado_confirmacion)
+    registros_all = auditoria_registros(fecha_desde, fecha_hasta, estado_confirmacion, orden_campo, orden_dir)
     total = len(registros_all)
     inicio = (pagina - 1) * por_pagina
     fin = inicio + por_pagina
@@ -130,3 +134,15 @@ def confirmar_redes_route(registro_id):
 @login_required
 def confirmar_gerencia_route(registro_id):
     return confirmar_gerencia(registro_id)
+
+# Confirmación masiva para vendedor
+@auditoria_bp.route('/confirmar_redes_masivo', methods=['POST'])
+@login_required
+def confirmar_redes_masivo_route():
+    return confirmar_redes_masivo()
+
+# Confirmación masiva para verificador
+@auditoria_bp.route('/confirmar_gerencia_masivo', methods=['POST'])
+@login_required
+def confirmar_gerencia_masivo_route():
+    return confirmar_gerencia_masivo()

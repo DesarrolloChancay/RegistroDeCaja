@@ -92,7 +92,7 @@
         Borrar filtros
       </button>
     </div>
-    {% if sessionname == 'admin' or sessionname == 'verificador' %}
+    {% if sessionname == 'admin' or sessionname == 'verificador' or sessionname == 'contabilidad' %}
     <div class="flex flex-row gap-2 w-full sm:w-auto justify-end">
       <button
         id="btn-exportar"
@@ -122,6 +122,17 @@
       <option value="100">100</option>
     </select>
     <span class="ml-0 sm:ml-2 text-xs sm:text-sm text-gray-700">registros</span>
+    <!-- Botón de orden -->
+    <button
+      id="btn-ordenar-fecha"
+      type="button"
+      class="ml-2 px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm text-gray-700 flex items-center gap-1 bg-white hover:bg-gray-100"
+      style="display:none;"
+      title="Ordenar por fecha de confirmación"
+    >
+      <span id="icono-orden">&#10597;</span>
+      <span class="hidden sm:inline">Ordenar</span>
+    </button>
   </div>
 
   <!-- Controles de paginación estilo Tailwind adaptados (para todos los roles) -->
@@ -130,25 +141,6 @@
     id="paginacion_auditoria"
   >
     <!-- Móvil: botones y números de página -->
-    <div class="flex flex-col w-full sm:hidden">
-      <div class="flex flex-1 justify-between w-full mb-1">
-        <button
-          id="btn-pag-anterior-m"
-          class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 w-1/2 mr-1"
-        >
-          Anterior
-        </button>
-        <button
-          id="btn-pag-siguiente-m"
-          class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 w-1/2 ml-1"
-        >
-          Siguiente
-        </button>
-      </div>
-      <div class="flex justify-center w-full">
-        <span id="paginas-numeros" class="flex"></span>
-      </div>
-    </div>
     <!-- Desktop: paginación y números -->
     <div
       class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between w-full"
@@ -255,14 +247,14 @@
           <th
             class="px-1 py-1 sm:px-2 sm:py-2 whitespace-nowrap truncate max-w-[120px]"
           >
-            Fecha Voucher<br class="block sm:hidden" />Confirmación Redes
+            Fecha Voucher
           </th>
           <th
             class="px-1 py-1 sm:px-2 sm:py-2 whitespace-nowrap truncate max-w-[100px]"
           >
             Confirmación Redes
           </th>
-          {% if sessionname == 'admin' or sessionname == 'verificador' %}
+          {% if sessionname == 'admin' or sessionname == 'verificador' or sessionname == 'contabilidad' %}
           <th
             class="px-1 py-1 sm:px-2 sm:py-2 whitespace-nowrap truncate max-w-[120px]"
           >
