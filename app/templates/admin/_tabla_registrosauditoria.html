@@ -1,0 +1,20 @@
+{# Tabla de registros de auditoría (vista v_auditoria_registros) #}
+{% if registros|length == 0 %}
+<tr id="no-registros-row">
+  <td colspan="100" class="text-center py-8 text-gray-500">No se encontró registros.</td>
+</tr>
+{% else %}
+{% for r in registros %}
+<tr class="bg-white border-b">
+  <td class="px-4 py-2">{{ r.fecha_cambio.strftime('%d-%m-%Y %H:%M') if r.fecha_cambio else 'N/A' }}</td>
+  <td class="px-4 py-2">{{ r.recibo }}</td>
+  <td class="px-4 py-2">{{ r.usuario_nombre }}</td>
+  <td class="px-4 py-2">{{ r.accion }}</td>
+  <td class="px-4 py-2">{{ r.campo_modificado }}</td>
+  <td class="px-4 py-2">{{ r.valor_anterior }}</td>
+  <td class="px-4 py-2">{{ r.valor_nuevo }}</td>
+  <td class="px-4 py-2">{{ r.motivo_cambio }}</td>
+  <td class="px-4 py-2">{{ r.ip_usuario }}</td>
+</tr>
+{% endfor %}
+{% endif %}

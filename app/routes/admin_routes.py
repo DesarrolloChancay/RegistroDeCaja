@@ -1,4 +1,5 @@
 
+
 # Archivo: app/routes/admin_routes.py
 
 
@@ -6,6 +7,12 @@ from flask import Blueprint
 from app.controllers import admin_controller
 
 admin_bp = Blueprint('admin', __name__)
+
+# AJAX tabla auditoría admin
+@admin_bp.route('/admin/registrosauditoria/tabla', methods=['POST'])
+def tabla_registrosauditoria():
+    from app.controllers import admin_controller
+    return admin_controller.tabla_registrosauditoria()
 
 @admin_bp.route('/admin/editar_fecha_voucher', methods=['POST'])
 def editar_fecha_voucher():
@@ -18,6 +25,10 @@ def editar_fecha_ingreso():
 @admin_bp.route('/mantenimiento')
 def mantenimiento():
     return admin_controller.admin_mantenimiento()
+
+@admin_bp.route('/registrosauditoria')
+def registros_auditoria():
+    return admin_controller.admin_registros_auditoria()
 
 @admin_bp.route('/admin/empresas/tabla')
 def tabla_empresas():

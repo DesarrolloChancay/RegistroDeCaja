@@ -1,16 +1,14 @@
 # Archivo: app/controllers/auditoria_controller.py
 
-from flask import render_template
 from app.models.registro_venta import RegistroVenta
 from flask import request, jsonify
 from app.extensions import db
 from datetime import datetime
 from sqlalchemy import text
 from zoneinfo import ZoneInfo
-from flask_login import login_required
 from flask_login import current_user
 
-def auditoria_registros(fecha_desde=None, fecha_hasta=None):
+def auditoria_registros(fecha_desde=None, fecha_hasta=None, estado_confirmacion=None):
     base_query = """
         SELECT
             rv.id, rv.recibo, rv.monto, rv.detalle, rv.confirmado,
@@ -21,11 +19,11 @@ def auditoria_registros(fecha_desde=None, fecha_hasta=None):
             eb.nombre as entidad_banco_nombre
         FROM registros_ventas AS rv
         LEFT JOIN empresas AS e ON rv.empresa_id = e.id
-        LEFT JOIN usuarios AS u ON rv.confirmado_por_redes = u.id
+        LEFT JOIN usuarios AS u ON rv.confirmador_voucher = u.id
         LEFT JOIN entidades_banco AS eb ON rv.entidad_banco_id = eb.id
     """
-    filtros = []  # Se crea una lista para los filtros
-    params = {}  # Se crea un diccionario
+    filtros = []
+    params = {}
     if fecha_desde and not fecha_hasta:
         filtros.append("rv.fecha_registro_pago = :fecha_desde")
         params['fecha_desde'] = fecha_desde
@@ -33,6 +31,30 @@ def auditoria_registros(fecha_desde=None, fecha_hasta=None):
         filtros.append("rv.fecha_registro_pago BETWEEN :fecha_desde AND :fecha_hasta")
         params['fecha_desde'] = fecha_desde
         params['fecha_hasta'] = fecha_hasta
+    # Filtro por estado de confirmación y rol
+    from flask_login import current_user
+    rol = getattr(current_user, 'rol', None)
+    nombre_rol = getattr(rol, 'nombre', None)
+    if estado_confirmacion == 'por_confirmar':
+        if nombre_rol == 'vendedor':
+            # Solo los que no están confirmados por redes (vendedor)
+            filtros.append("(rv.confirmado_redes = 0 OR rv.confirmado_redes IS NULL)")
+        elif nombre_rol == 'verificador':
+            # Solo los que ya fueron confirmados por redes pero no por gerencia
+            filtros.append("(rv.confirmado_redes = 1 AND (rv.confirmado = 0 OR rv.confirmado IS NULL))")
+        else:
+            # admin: todos los que no están confirmados por gerencia
+            filtros.append("(rv.confirmado = 0 OR rv.confirmado IS NULL)")
+    elif estado_confirmacion == 'confirmados':
+        if nombre_rol == 'vendedor':
+            # Solo los que no están confirmados por redes (vendedor)
+            filtros.append("(rv.confirmado_redes = 1)")
+        elif nombre_rol == 'verificador':
+            # Solo los que ya fueron confirmados por redes pero no por gerencia
+            filtros.append("(rv.confirmado_redes = 1 AND (rv.confirmado = 1))")
+        else:
+            # admin: todos los que no están confirmados por gerencia
+            filtros.append("(rv.confirmado_redes = 1 AND rv.confirmado = 1)")
     if filtros:
         base_query += " WHERE " + " AND ".join(filtros)
     with db.engine.connect() as conn:
@@ -55,12 +77,24 @@ def confirmar_redes(registro_id):
     if not fecha_comprobante_str:
         return jsonify({"success": False, "error": "Fecha de comprobante requerida: "}), 400
 
+    from sqlalchemy.orm import sessionmaker
     try:
-        registro.confirmado_redes = True
-        registro.fecha_comprobante = datetime.strptime(fecha_comprobante_str, "%Y-%m-%d").date()
-        registro.fecha_confirmacion_redes = datetime.now(ZoneInfo("America/Lima"))
-        registro.confirmado_por_redes = current_user.id
-        db.session.commit()
+        ip = obtener_ip()
+        motivo = None  # Para todos los roles, motivo es None
+        Session = sessionmaker(bind=db.engine)
+        with db.engine.begin() as connection:
+            session = Session(bind=connection)
+            connection.execute(
+                text("CALL SetAuditContext(:user_id, :reason, :ip)"),
+                {"user_id": current_user.id, "reason": motivo, "ip": ip}
+            )
+            registro = session.get(RegistroVenta, registro_id)
+            registro.confirmado_redes = True
+            registro.fecha_comprobante = datetime.strptime(fecha_comprobante_str, "%Y-%m-%d").date()
+            registro.fecha_confirmacion_redes = datetime.now(ZoneInfo("America/Lima"))
+            registro.confirmador_voucher = current_user.id
+            session.commit()
+            connection.execute(text("CALL ClearAuditContext()"))
         return jsonify({"success": True})
     except Exception as e:
         db.session.rollback()
@@ -81,12 +115,24 @@ def confirmar_gerencia(registro_id):
     if not fecha_ingreso_cuenta_str:
         return jsonify({"success": False, "error": "Fecha de ingreso a cuenta requerida"}), 400
 
+    from sqlalchemy.orm import sessionmaker
     try:
-        registro.confirmado = True
-        registro.fecha_ingreso_cuenta = datetime.strptime(fecha_ingreso_cuenta_str, "%Y-%m-%d").date()
-        registro.fecha_confirmacion_gerencia = datetime.now(ZoneInfo("America/Lima"))
-        registro.confirmado_por_gerencia = current_user.id
-        db.session.commit()
+        ip = obtener_ip()
+        motivo = None  # Para todos los roles, motivo es None
+        Session = sessionmaker(bind=db.engine)
+        with db.engine.begin() as connection:
+            session = Session(bind=connection)
+            connection.execute(
+                text("CALL SetAuditContext(:user_id, :reason, :ip)"),
+                {"user_id": current_user.id, "reason": motivo, "ip": ip}
+            )
+            registro = session.get(RegistroVenta, registro_id)
+            registro.confirmado = True
+            registro.fecha_ingreso_cuenta = datetime.strptime(fecha_ingreso_cuenta_str, "%Y-%m-%d").date()
+            registro.fecha_confirmacion_gerencia = datetime.now(ZoneInfo("America/Lima"))
+            registro.confirmador_cuenta = current_user.id
+            session.commit()
+            connection.execute(text("CALL ClearAuditContext()"))
         return jsonify({"success": True})
     except Exception as e:
         db.session.rollback()
@@ -107,3 +153,10 @@ def formatear_numero(num):
     else:
         # Si tiene decimales
         return f"{num:,.2f}".replace(",", " ")
+
+def obtener_ip():
+    if request.headers.get('X-Forwarded-For'):
+        ip = request.headers.get('X-Forwarded-For').split(',')[0].strip()
+    else:
+        ip = request.remote_addr or ''
+    return ip

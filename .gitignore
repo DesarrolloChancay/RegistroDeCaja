@@ -1,5 +1,6 @@
-requirements.txt
 *desktop.ini
 .env
 *.pyc
 __pycache__/
+usuarios.txt
+hi.py

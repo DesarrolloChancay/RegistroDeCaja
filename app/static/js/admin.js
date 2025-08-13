@@ -1,3 +1,182 @@
+// --- Tabla de registros de auditoría (admin) ---
+function cargarTablaRegistrosAuditoriaAdmin(pagina = 1) {
+    let por_pagina = parseInt($('#select-registros-pagina-admin').val()) || 10;
+    let fecha_desde = $('#fecha_desde_admin').val();
+    let fecha_hasta = $('#fecha_hasta_admin').val();
+    let busqueda = $('#buscador-general-admin').val();
+    $.post('/admin/registrosauditoria/tabla', {
+        pagina: pagina,
+        por_pagina: por_pagina,
+        fecha_desde: fecha_desde,
+        fecha_hasta: fecha_hasta,
+        busqueda: busqueda
+    }, function(res) {
+        $('#registros_auditoria_admin').html(res.html);
+        // Paginación
+        let desde = res.total === 0 ? 0 : ((pagina - 1) * por_pagina) + 1;
+        let hasta = Math.min(pagina * por_pagina, res.total);
+        $('#pag-desde-admin').text(desde);
+        $('#pag-hasta-admin').text(hasta);
+        $('#pag-total-admin').text(res.total);
+        // Botones
+        $('#btn-pag-anterior-admin').prop('disabled', pagina <= 1);
+        $('#btn-pag-siguiente-admin').prop('disabled', !res.hay_mas);
+        // Números de página
+        let totalPaginas = Math.ceil(res.total / por_pagina);
+        let htmlPaginas = '';
+        if (totalPaginas < 1) totalPaginas = 1;
+        let maxMostrar = 5;
+        let start = Math.max(1, pagina - 2);
+        let end = Math.min(totalPaginas, start + maxMostrar - 1);
+        if (end - start < maxMostrar - 1) start = Math.max(1, end - maxMostrar + 1);
+        if (start > 1) {
+            htmlPaginas += '<button class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 border border-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0" data-pag="1">1</button>';
+            if (start > 2) htmlPaginas += '<span class="relative inline-flex items-center px-2 py-2 text-sm font-semibold text-gray-700">...</span>';
+        }
+        for (let i = start; i <= end; i++) {
+            if (i === pagina) {
+                htmlPaginas += '<button class="relative z-10 inline-flex items-center bg-indigo-600 px-4 py-2 text-sm font-semibold text-white border border-gray-300 focus:z-20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600" data-pag="' + i + '">' + i + '</button>';
+            } else {
+                htmlPaginas += '<button class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 border border-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0" data-pag="' + i + '">' + i + '</button>';
+            }
+        }
+        if (end < totalPaginas) {
+            if (end < totalPaginas - 1) htmlPaginas += '<span class="relative inline-flex items-center px-2 py-2 text-sm font-semibold text-gray-700">...</span>';
+            htmlPaginas += '<button class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 border border-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0" data-pag="' + totalPaginas + '">' + totalPaginas + '</button>';
+        }
+        // Si no hay páginas, mostrar al menos la 1
+        if (htmlPaginas === '') {
+            htmlPaginas = '<button class="relative z-10 inline-flex items-center bg-indigo-600 px-4 py-2 text-sm font-semibold text-white border border-gray-300" data-pag="1">1</button>';
+        }
+        $('#paginas-numeros-admin').html(htmlPaginas);
+        // Click en número de página
+        $('#paginas-numeros-admin button[data-pag]').off('click').on('click', function () {
+            let pag = parseInt($(this).attr('data-pag'));
+            if (pag !== pagina) cargarTablaRegistrosAuditoriaAdmin(pag);
+        });
+    }, 'json');
+}
+
+$(document).ready(function () {
+    // Inicial: cargar primera página
+    if ($('#registros_auditoria_admin').length) {
+        cargarTablaRegistrosAuditoriaAdmin(1);
+        // Filtros
+        $('#select-registros-pagina-admin').on('change', function () { cargarTablaRegistrosAuditoriaAdmin(1); });
+        $('#btn-buscar-rango-admin').on('click', function () { cargarTablaRegistrosAuditoriaAdmin(1); });
+        $('#btn-borrar-filtros-admin').on('click', function () {
+            $('#fecha_desde_admin').val('');
+            $('#fecha_hasta_admin').val('');
+            $('#buscador-general-admin').val('');
+            cargarTablaRegistrosAuditoriaAdmin(1);
+        });
+        // Corregido: calcular página actual correctamente
+        let paginaActual = 1;
+        // Guardar la página actual en cada carga
+        function setPaginaActual(pag) { paginaActual = pag; }
+        // Sobrescribir cargarTablaRegistrosAuditoriaAdmin para guardar página
+        const cargarOriginal = cargarTablaRegistrosAuditoriaAdmin;
+        cargarTablaRegistrosAuditoriaAdmin = function(pag) {
+            setPaginaActual(pag);
+            cargarOriginal(pag);
+        };
+        $('#btn-pag-anterior-admin').on('click', function () {
+            if (paginaActual > 1) cargarTablaRegistrosAuditoriaAdmin(paginaActual - 1);
+        });
+        $('#btn-pag-siguiente-admin').on('click', function () {
+            let por_pagina = parseInt($('#select-registros-pagina-admin').val()) || 10;
+            let total = parseInt($('#pag-total-admin').text()) || 0;
+            let totalPaginas = Math.ceil(total / por_pagina);
+            if (paginaActual < totalPaginas) cargarTablaRegistrosAuditoriaAdmin(paginaActual + 1);
+        });
+        // Buscador general (en tiempo real)
+        $('#buscador-general-admin').on('input', function () {
+            cargarTablaRegistrosAuditoriaAdmin(1);
+        });
+    }
+});
+// --- Guardar edición de fechas (solo admin) ---
+function guardarFechaVoucher(id) {
+    const input = document.getElementById(`fecha_redes_${id}`);
+    const fecha = input?.value;
+    if (!fecha) {
+        alert('Por favor, selecciona una fecha.');
+        return;
+    }
+    let mensaje = `¿Deseas guardar la fecha <b>${fecha}</b> para el voucher? Esta acción es irreversible y quedará registrada en auditoría.`;
+    mostrarDialogoConfirmacion({
+        titulo: 'Confirmar edición de fecha de voucher',
+        mensaje: mensaje,
+        textoBoton: 'Guardar fecha',
+        onConfirm: function(motivo) {
+            $.ajax({
+                url: '/admin/editar_fecha_voucher',
+                method: 'POST',
+                data: { id: id, fecha: fecha, motivo: motivo },
+                success: function(resp) {
+                    if (resp.success) { location.reload(); } else { alert(resp.error || 'Error al guardar'); }
+                },
+                error: function(xhr) {
+                    alert('Error en el servidor: ' + (xhr.responseJSON?.error || xhr.statusText));
+                }
+            });
+        }
+    });
+    // Insertar textarea de motivo solo para admin después de abrir el modal
+    setTimeout(function() {
+        if (window.sessionRol === 'admin') {
+            var $motivoDestino = $('#motivo-admin-modal-destino');
+            $motivoDestino.empty();
+            $motivoDestino.append(`
+                <div class='mt-4 w-full' id='motivo-admin-modal'>
+                    <label for='motivo-admin' class='block text-sm font-medium text-gray-700 mb-1'>Motivo (obligatorio):</label>
+                    <textarea id='motivo-admin' class='block w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring focus:ring-yellow-200 focus:border-yellow-400 resize-none' rows='2' required placeholder='Describe el motivo de la edición...'></textarea>
+                </div>
+            `);
+        }
+    }, 100);
+}
+
+function guardarFechaIngreso(id) {
+    const input = document.getElementById(`fecha_ingreso_cuenta_${id}`);
+    const fecha = input?.value;
+    if (!fecha) {
+        alert('Por favor, selecciona una fecha.');
+        return;
+    }
+    let mensaje = `¿Deseas guardar la fecha <b>${fecha}</b> para el ingreso de dinero? Esta acción es irreversible y quedará registrada en auditoría.`;
+    mostrarDialogoConfirmacion({
+        titulo: 'Confirmar edición de fecha de ingreso',
+        mensaje: mensaje,
+        textoBoton: 'Guardar fecha',
+        onConfirm: function(motivo) {
+            $.ajax({
+                url: '/admin/editar_fecha_ingreso',
+                method: 'POST',
+                data: { id: id, fecha: fecha, motivo: motivo },
+                success: function(resp) {
+                    if (resp.success) { location.reload(); } else { alert(resp.error || 'Error al guardar'); }
+                },
+                error: function(xhr) {
+                    alert('Error en el servidor: ' + (xhr.responseJSON?.error || xhr.statusText));
+                }
+            });
+        }
+    });
+    // Insertar textarea de motivo solo para admin después de abrir el modal
+    setTimeout(function() {
+        if (window.sessionRol === 'admin') {
+            var $motivoDestino = $('#motivo-admin-modal-destino');
+            $motivoDestino.empty();
+            $motivoDestino.append(`
+                <div class='mt-4 w-full' id='motivo-admin-modal'>
+                    <label for='motivo-admin' class='block text-sm font-medium text-gray-700 mb-1'>Motivo (obligatorio):</label>
+                    <textarea id='motivo-admin' class='block w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring focus:ring-yellow-200 focus:border-yellow-400 resize-none' rows='2' required placeholder='Describe el motivo de la edición...'></textarea>
+                </div>
+            `);
+        }
+    }, 100);
+}
 // admin.js - Lógica AJAX para mantenimiento admin
 // --- Modal reutilizable para agregar entidades ---
 function abrirModalAgregar(tab, campos) {

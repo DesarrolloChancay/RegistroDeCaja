@@ -1,21 +1,44 @@
-    $('#btn-exportar').on('click', function() {
-        window.location.href = '/auditoria/exportar';
-    });
+// Alerta de mensaje
+
+$(document).ready(function () {
+    const alert = $(".alert");
+
+    setTimeout(function () {
+        alert.removeClass("translate-x-full opacity-0")
+            .addClass("translate-x-0 opacity-100");
+    }, 100);
+
+    setTimeout(function () {
+        alert.removeClass("translate-x-0 opacity-100")
+            .addClass("translate-x-full opacity-0");
+        setTimeout(function () {
+            alert.remove();
+        }, 500);
+    }, 4000);
+});
+
+
+
+$('#btn-exportar').on('click', function () {
+    window.location.href = '/auditoria/exportar';
+});
 // --- Paginación AJAX personalizada ---
+
 
 let paginaActual = 1;
 let registrosPorPagina = 10;
 let filtrosActuales = {};
+let estadoConfirmacion = 'por_confirmar'; // por defecto
 
 function cargarPaginaAuditoria(pagina, filtros = null) {
     if (filtros !== null) filtrosActuales = filtros;
     $.post('/auditoria/tabla', {
         pagina: pagina,
         por_pagina: registrosPorPagina,
+        estado_confirmacion: estadoConfirmacion,
         ...filtrosActuales
-    }, function(res) {
+    }, function (res) {
         if (typeof res === 'string') {
-            // Si la respuesta es HTML (retrocompatibilidad)
             $('tbody#registros_auditoria').html(res);
             $('#btn-pag-anterior').prop('disabled', pagina <= 1);
             $('#btn-pag-siguiente').prop('disabled', false);
@@ -43,7 +66,7 @@ function cargarPaginaAuditoria(pagina, filtros = null) {
         $('#pag-total').text(res.total);
 
         // --- Números de página ---
-        let totalPaginas = Math.ceil(res.total / registrosPorPagina);
+        let totalPaginas = Math.max(1, Math.ceil(res.total / registrosPorPagina));
         let htmlPaginas = '';
         let maxMostrar = 5;
         let start = Math.max(1, pagina - 2);
@@ -55,54 +78,106 @@ function cargarPaginaAuditoria(pagina, filtros = null) {
         }
         for (let i = start; i <= end; i++) {
             if (i === pagina) {
-                htmlPaginas += '<button class="relative z-10 inline-flex items-center bg-indigo-600 px-4 py-2 text-sm font-semibold text-white border border-gray-300 focus:z-20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600" data-pag="'+i+'">'+i+'</button>';
+                htmlPaginas += '<button class="relative z-10 inline-flex items-center bg-indigo-600 px-4 py-2 text-sm font-semibold text-white border border-gray-300 focus:z-20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600" data-pag="' + i + '">' + i + '</button>';
             } else {
-                htmlPaginas += '<button class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 border border-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0" data-pag="'+i+'">'+i+'</button>';
+                htmlPaginas += '<button class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 border border-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0" data-pag="' + i + '">' + i + '</button>';
             }
         }
         if (end < totalPaginas) {
             if (end < totalPaginas - 1) htmlPaginas += '<span class="relative inline-flex items-center px-2 py-2 text-sm font-semibold text-gray-700">...</span>';
-            htmlPaginas += '<button class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 border border-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0" data-pag="'+totalPaginas+'">'+totalPaginas+'</button>';
+            htmlPaginas += '<button class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 border border-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0" data-pag="' + totalPaginas + '">' + totalPaginas + '</button>';
         }
-        $('#paginas-numeros').html(htmlPaginas);
+        // Actualizar paginación en ambos contenedores (móvil y desktop)
+        $('#paginas-numeros').each(function(){
+            $(this).html(htmlPaginas);
+        });
 
-        // Click en número de página
-        $('#paginas-numeros button[data-pag]').off('click').on('click', function() {
+        // Delegar evento click para los botones de página (funciona aunque se reemplace el HTML)
+        $(document).off('click', '#paginas-numeros button[data-pag]');
+        $(document).on('click', '#paginas-numeros button[data-pag]', function () {
             let pag = parseInt($(this).attr('data-pag'));
-            if (pag !== paginaActual) cargarPaginaAuditoria(pag);
+            if (!isNaN(pag) && pag !== paginaActual) cargarPaginaAuditoria(pag);
         });
     }, 'json');
 }
 
-$(document).ready(function() {
+$(document).ready(function () {
     // Inicial: cargar primera página
     cargarPaginaAuditoria(1, {});
 
-    $('#select-registros-pagina').on('change', function() {
-        registrosPorPagina = parseInt($(this).val());
-        cargarPaginaAuditoria(1, filtrosActuales);
+    // Tabs de registros por confirmar/confirmados
+    $(document).on('click', '.tab-auditoria', function () {
+        $('.tab-auditoria').removeClass('bg-[#b07c40] text-white').addClass('bg-gray-300 text-gray-700');
+        $(this).removeClass('bg-gray-300 text-gray-700').addClass('bg-[#b07c40] text-white');
+        estadoConfirmacion = $(this).data('estado');
+        cargarPaginaAuditoria(1, {});
     });
 
-    $('#btn-buscar-rango').on('click', function() {
+    $('#select-registros-pagina').on('change', function () {
+        registrosPorPagina = parseInt($(this).val());
+        cargarPaginaAuditoria(1, {});
+    });
+
+    $('#btn-buscar-rango').on('click', function () {
         const fechaDesde = $('#fecha_desde').val();
         const fechaHasta = $('#fecha_hasta').val();
-        cargarPaginaAuditoria(1, {fecha_desde: fechaDesde, fecha_hasta: fechaHasta});
+        let filtros = {};
+        if (fechaDesde) filtros.fecha_desde = fechaDesde;
+        if (fechaHasta) filtros.fecha_hasta = fechaHasta;
+        cargarPaginaAuditoria(1, filtros);
     });
 
-    $('#btn-borrar-filtros').on('click', function() {
+    $('#btn-borrar-filtros').on('click', function () {
         $('#fecha_desde').val('');
         $('#fecha_hasta').val('');
         cargarPaginaAuditoria(1, {});
     });
 
-    $('#btn-pag-anterior').on('click', function() {
-        if (paginaActual > 1) {
-            cargarPaginaAuditoria(paginaActual - 1);
-        }
+    $('#btn-pag-anterior').on('click', function () {
+        if (paginaActual > 1) cargarPaginaAuditoria(paginaActual - 1);
     });
-    $('#btn-pag-siguiente').on('click', function() {
+    $('#btn-pag-siguiente').on('click', function () {
         cargarPaginaAuditoria(paginaActual + 1);
     });
+
+    // Buscador general en la tabla (filtro en tiempo real)
+    $('#buscador-general').on('input', function () {
+        const valor = $(this).val().toLowerCase();
+        let filas = $('#registros_auditoria tr').not('#no-registros-row');
+        let visibles = 0;
+        filas.each(function () {
+            let mostrar = false;
+            $(this).find('td').each(function () {
+                if ($(this).text().toLowerCase().indexOf(valor) !== -1) {
+                    mostrar = true;
+                }
+            });
+            $(this).toggle(mostrar);
+            if (mostrar) visibles++;
+        });
+        // Quitar mensaje previo si existe
+        $('#no-registros-row').remove();
+        // Si no hay filas visibles, mostrar mensaje
+        if (visibles === 0) {
+            let colCount = $('#registros_auditoria').closest('table').find('thead tr th').length || 10;
+            $('#registros_auditoria').append('<tr id="no-registros-row"><td colspan="' + colCount + '" class="text-center py-8 text-gray-500">No se encontró registros.</td></tr>');
+        }
+    });
+});
+
+$('#btn-borrar-filtros').on('click', function () {
+    $('#fecha_desde').val('');
+    $('#fecha_hasta').val('');
+    cargarPaginaAuditoria(1, {});
+});
+
+$('#btn-pag-anterior').on('click', function () {
+    if (paginaActual > 1) {
+        cargarPaginaAuditoria(paginaActual - 1);
+    }
+});
+$('#btn-pag-siguiente').on('click', function () {
+    cargarPaginaAuditoria(paginaActual + 1);
 });
 // Archivo: app/static/js/app.js
 
@@ -115,28 +190,42 @@ function guardarFechaVoucher(id) {
         alert('Por favor, selecciona una fecha.');
         return;
     }
+    let mensaje = `¿Deseas guardar la fecha <b>${fecha}</b> para el voucher? Esta acción es irreversible y quedará registrada en auditoría.`;
     mostrarDialogoConfirmacion({
         titulo: 'Confirmar edición de fecha de voucher',
-        mensaje: `¿Deseas guardar la fecha <b>${fecha}</b> para el voucher? Esta acción es irreversible y quedará registrada en auditoría.`,
+        mensaje: mensaje,
         textoBoton: 'Guardar fecha',
-        onConfirm: () => {
+        onConfirm: function (motivo) {
             $.ajax({
                 url: '/admin/editar_fecha_voucher',
                 method: 'POST',
-                data: { id: id, fecha: fecha },
-                success: function(resp) {
+                data: { id: id, fecha: fecha, motivo: motivo },
+                success: function (resp) {
                     if (resp.success) {
                         actualizarTablaAuditoria();
                     } else {
                         alert(resp.error || 'Error al guardar fecha.');
                     }
                 },
-                error: function(xhr) {
+                error: function (xhr) {
                     alert('Error en el servidor: ' + (xhr.responseJSON?.error || xhr.statusText));
                 }
             });
         }
     });
+    // Insertar textarea de motivo solo para admin después de abrir el modal
+    setTimeout(function () {
+        if (window.sessionRol === 'admin') {
+            var $motivoDestino = $('#motivo-admin-modal-destino');
+            $motivoDestino.empty();
+            $motivoDestino.append(`
+                <div class='mt-4 w-full' id='motivo-admin-modal'>
+                    <label for='motivo-admin' class='block text-sm font-medium text-gray-700 mb-1'>Motivo (obligatorio):</label>
+                    <textarea id='motivo-admin' class='block w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring focus:ring-yellow-200 focus:border-yellow-400 resize-none' rows='2' required placeholder='Describe el motivo de la edición...'></textarea>
+                </div>
+            `);
+        }
+    }, 100);
 }
 
 
@@ -147,35 +236,47 @@ function guardarFechaIngreso(id) {
         alert('Por favor, selecciona una fecha.');
         return;
     }
+    let mensaje = `¿Deseas guardar la fecha <b>${fecha}</b> para el ingreso de dinero? Esta acción es irreversible y quedará registrada en auditoría.`;
     mostrarDialogoConfirmacion({
         titulo: 'Confirmar edición de fecha de ingreso',
-        mensaje: `¿Deseas guardar la fecha <b>${fecha}</b> para el ingreso de dinero? Esta acción es irreversible y quedará registrada en auditoría.`,
+        mensaje: mensaje,
         textoBoton: 'Guardar fecha',
-        onConfirm: () => {
+        onConfirm: function (motivo) {
             $.ajax({
                 url: '/admin/editar_fecha_ingreso',
                 method: 'POST',
-                data: { id: id, fecha: fecha },
-                success: function(resp) {
+                data: { id: id, fecha: fecha, motivo: motivo },
+                success: function (resp) {
                     if (resp.success) {
                         actualizarTablaAuditoria();
                     } else {
                         alert(resp.error || 'Error al guardar fecha.');
                     }
                 },
-                error: function(xhr) {
+                error: function (xhr) {
                     alert('Error en el servidor: ' + (xhr.responseJSON?.error || xhr.statusText));
                 }
             });
         }
     });
+    // Insertar textarea de motivo solo para admin después de abrir el modal
+    setTimeout(function () {
+        if (window.sessionRol === 'admin') {
+            var $motivoDestino = $('#motivo-admin-modal-destino');
+            $motivoDestino.empty();
+            $motivoDestino.append(`
+                <div class='mt-4 w-full' id='motivo-admin-modal'>
+                    <label for='motivo-admin' class='block text-sm font-medium text-gray-700 mb-1'>Motivo (obligatorio):</label>
+                    <textarea id='motivo-admin' class='block w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring focus:ring-yellow-200 focus:border-yellow-400 resize-none' rows='2' required placeholder='Describe el motivo de la edición...'></textarea>
+                </div>
+            `);
+        }
+    }, 100);
 }
 
 function confirmarRedes(id) {
     const inputFecha = document.getElementById(`fecha_redes_${id}`);
     const fechaSeleccionada = inputFecha?.value;
-
-    console.log("Fecha seleccionada:", fechaSeleccionada);
 
     if (!fechaSeleccionada) {
         alert("⚠️ Por favor, selecciona una fecha para confirmar redes.");
@@ -192,16 +293,17 @@ function confirmarRedes(id) {
                 method: "POST",
                 contentType: "application/json",
                 data: JSON.stringify({ fecha: fechaSeleccionada }),
-                success: function(data) {
+                success: function (data) {
                     if (data.success) {
-                        actualizarTablaAuditoria()
+                        mostrarAlerta('¡Confirmación exitosa!', 'success');
+                        actualizarTablaAuditoria();
                     } else {
-                        alert(data.error || "Error al confirmar.");
+                        mostrarAlerta(data.error || 'Ocurrió un error al confirmar.', 'error');
                     }
                 },
-                error: function(jqXHR) {
-                    console.error("Server Error:", jqXHR.responseText);
-                    alert("Ocurrió un error en el servidor. Por favor, revisa la consola para más detalles.");
+                error: function (jqXHR) {
+                    let msg = jqXHR.responseJSON?.error || jqXHR.statusText || 'Ocurrió un error en el servidor.';
+                    mostrarAlerta(msg, 'error');
                 }
             });
         }
@@ -227,20 +329,35 @@ function confirmarGerencia(id) {
                 method: "POST",
                 contentType: "application/json",
                 data: JSON.stringify({ fecha: fechaSeleccionada }),
-                success: function(data) {
+                success: function (data) {
                     if (data.success) {
-                        actualizarTablaAuditoria()
+                        mostrarAlerta('¡Confirmación exitosa!', 'success');
+                        actualizarTablaAuditoria();
                     } else {
-                        alert(data.error || "Error al confirmar.");
+                        mostrarAlerta(data.error || 'Ocurrió un error al confirmar.', 'error');
                     }
                 },
-                error: function(jqXHR) {
-                    console.error("Server Error:", jqXHR.responseText);
-                    alert("Ocurrió un error en el servidor. Por favor, revisa la consola para más detalles.");
+                error: function (jqXHR) {
+                    let msg = jqXHR.responseJSON?.error || jqXHR.statusText || 'Ocurrió un error en el servidor.';
+                    mostrarAlerta(msg, 'error');
                 }
             });
         }
     });
+// Alerta visual tipo login (reutilizable)
+function mostrarAlerta(mensaje, tipo = 'success') {
+    // Elimina alertas previas
+    $('.alert-auditoria').remove();
+    let color = tipo === 'success' ? 'bg-green-500' : 'bg-red-500';
+    let html = `<div class="alert-auditoria fixed top-4 left-1/2 transform -translate-x-1/2 z-50 ${color} text-white px-6 py-3 rounded shadow transition-all opacity-0">${mensaje}</div>`;
+    $('body').append(html);
+    let $alert = $('.alert-auditoria');
+    setTimeout(() => $alert.removeClass('opacity-0').addClass('opacity-100'), 50);
+    setTimeout(() => {
+        $alert.removeClass('opacity-100').addClass('opacity-0');
+        setTimeout(() => $alert.remove(), 500);
+    }, 3000);
+}
 }
 
 
@@ -251,17 +368,43 @@ function mostrarDialogoConfirmacion({ titulo, mensaje, textoBoton, onConfirm }) 
     const confirmarBtn = document.getElementById("btn-confirmar-modal");
     const cancelarBtn = document.getElementById("btn-cancelar-modal");
 
+    // Siempre mostrar el título y mensaje
     title.innerText = titulo;
-    // Permitir HTML en el mensaje (para resaltar la fecha)
-    mensajeElem.innerHTML = mensaje;
+    $(mensajeElem).html(mensaje);
     confirmarBtn.innerText = textoBoton || "Confirmar";
+
+    // Limpiar el destino del motivo
+    var $motivoDestino = $('#motivo-admin-modal-destino');
+    $motivoDestino.empty();
+
+    // Insertar textarea de motivo solo para admin cuando el modal ya está visible
+    dialog.addEventListener('shown', function handler() {
+        dialog.removeEventListener('shown', handler);
+        if (window.sessionRol === 'admin') {
+            $motivoDestino.append(`
+                <div class='mt-4 w-full' id='motivo-admin-modal'>
+                    <label for='motivo-admin' class='block text-sm font-medium text-gray-700 mb-1'>Motivo (obligatorio):</label>
+                    <textarea id='motivo-admin' class='block w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring focus:ring-yellow-200 focus:border-yellow-400 resize-none' rows='2' required placeholder='Describe el motivo de la edición...'></textarea>
+                </div>
+            `);
+        }
+    });
 
     // Clonar el botón para eliminar escuchadores de eventos anteriores
     const nuevoBtn = confirmarBtn.cloneNode(true);
     confirmarBtn.parentNode.replaceChild(nuevoBtn, confirmarBtn);
 
     nuevoBtn.addEventListener("click", () => {
-        onConfirm();
+        let motivo = '';
+        if (window.sessionRol === 'admin') {
+            motivo = document.getElementById('motivo-admin')?.value || '';
+            if (!motivo.trim()) {
+                alert('El motivo es obligatorio para admin.');
+                document.getElementById('motivo-admin').focus();
+                return;
+            }
+        }
+        onConfirm(motivo);
         dialog.close();
     });
 
@@ -276,7 +419,7 @@ function actualizarTablaAuditoria() {
         pagina: paginaActual,
         por_pagina: registrosPorPagina,
         ...filtrosActuales
-    }, function(res) {
+    }, function (res) {
         if (typeof res === 'string') {
             $('tbody#registros_auditoria').html(res);
             return;
@@ -305,18 +448,18 @@ function actualizarTablaAuditoria() {
         }
         for (let i = start; i <= end; i++) {
             if (i === pagina) {
-                htmlPaginas += '<button class="relative z-10 inline-flex items-center bg-indigo-600 px-4 py-2 text-sm font-semibold text-white border border-gray-300 focus:z-20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600" data-pag="'+i+'">'+i+'</button>';
+                htmlPaginas += '<button class="relative z-10 inline-flex items-center bg-indigo-600 px-4 py-2 text-sm font-semibold text-white border border-gray-300 focus:z-20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600" data-pag="' + i + '">' + i + '</button>';
             } else {
-                htmlPaginas += '<button class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 border border-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0" data-pag="'+i+'">'+i+'</button>';
+                htmlPaginas += '<button class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 border border-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0" data-pag="' + i + '">' + i + '</button>';
             }
         }
         if (end < totalPaginas) {
             if (end < totalPaginas - 1) htmlPaginas += '<span class="relative inline-flex items-center px-2 py-2 text-sm font-semibold text-gray-700">...</span>';
-            htmlPaginas += '<button class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 border border-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0" data-pag="'+totalPaginas+'">'+totalPaginas+'</button>';
+            htmlPaginas += '<button class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 border border-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0" data-pag="' + totalPaginas + '">' + totalPaginas + '</button>';
         }
         $('#paginas-numeros').html(htmlPaginas);
         // Click en número de página
-        $('#paginas-numeros button[data-pag]').off('click').on('click', function() {
+        $('#paginas-numeros button[data-pag]').off('click').on('click', function () {
             let pag = parseInt($(this).attr('data-pag'));
             if (pag !== paginaActual) cargarPaginaAuditoria(pag);
         });

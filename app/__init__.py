@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
+
 from app.config import Config
 from app.extensions import db, login_manager
 from flask_login import login_user, logout_user, login_required, current_user
@@ -9,8 +10,20 @@ from app.routes.admin_routes import admin_bp
 from app.controllers.auditoria_controller import create_titulo
 from flask import session
 from flask import make_response
+import bcrypt
 
 auth_bp = Blueprint('auth', __name__)
+login_manager.login_message = None
+
+
+# --- Funciones de hash y verificación de contraseña ---
+def hash_password(password: str) -> str:
+    hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+    return hashed.decode('utf-8')
+
+
+def check_password(password: str, hashed_password: str) -> bool:
+    return bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8'))
 
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
@@ -18,16 +31,35 @@ def login():
     if request.method == 'POST':
         correo = request.form['email']
         contrasena = request.form['password']
-        user = Usuario.query.filter_by(
-            correo=correo, contrasena=contrasena).first()
-        if user:
+
+        user = Usuario.query.filter_by(correo=correo).first()
+
+        if not user:
+            flash('No existe el usuario', 'danger')
+            return render_template('login.html')
+
+        # Validar contraseña
+        if check_password(contrasena, user.contrasena):
+
+            # ✅ Revisar si ya tiene una sesión activa
+            if user.session_active:
+                flash('Este usuario ya tiene una sesión activa.', 'warning')
+                return render_template('login.html')
+
+            # Activar la sesión
+            user.session_active = True
+            db.session.commit()
+
+            # Login normal
             login_user(user)
             session['rol'] = user.rol.nombre
             session['name'] = user.nombre
             session['titulo'] = create_titulo(session['rol'])
+
             return redirect(url_for('auditoria.auditoria'))
         else:
             flash('Usuario o contraseña incorrectos', 'danger')
+
     return render_template('login.html')
 
 
@@ -35,8 +67,11 @@ def login():
 @login_required
 def logout():
 
+    current_user.session_active = False
+    db.session.commit()
     logout_user()
     return redirect(url_for('auth.login'))
+
 
 def create_app():
     app = Flask(__name__)
