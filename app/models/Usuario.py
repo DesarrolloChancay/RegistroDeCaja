@@ -12,6 +12,7 @@ class Usuario(UserMixin, db.Model):
     nombre = db.Column(db.String(100), nullable=False)
     correo = db.Column(db.String(100), unique=True, nullable=False)
     contrasena = db.Column(db.String(100), nullable=False)
+    session_active = db.Column(db.Boolean, default=False)
     rol_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
     rol = db.relationship('Rol')
 

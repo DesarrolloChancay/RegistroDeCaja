@@ -1,3 +1,6 @@
+<script>
+  window.sessionRol = "{{ session['rol'] if 'rol' in session else '' }}";
+</script>
 {% set sessionname = session['rol'] %} {% set titulo = session['titulo'] %} {%
 set Nombreusuario = session['name'] %}
 
@@ -7,6 +10,10 @@ set Nombreusuario = session['name'] %}
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% block title %}Gestión de Caja{% endblock %}</title>
+
+  <!-- Favicon global -->
+  <link rel="icon" href="{{ url_for('static', filename='img/cropped-CASTILLO-DE-CHANCAY-32x32.png') }}" sizes="32x32">
+  <link rel="icon" href="{{ url_for('static', filename='img/cropped-CASTILLO-DE-CHANCAY-192x192.png') }}" sizes="192x192">
 
     <!-- Tailwind y elementos -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
@@ -19,16 +26,39 @@ set Nombreusuario = session['name'] %}
 
   <body class="bg-[#7c4e1a] font-sans">
     {% if current_user.is_authenticated %}
-    <header class="bg-gradient-to-r bg-[#7c4e1a] text-white py-3 sm:py-4 shadow-md sticky top-0 z-40">
-      <div class="container mx-auto flex flex-wrap items-center justify-between px-2 sm:px-4">
-        <h1 class="text-base sm:text-xl font-bold truncate max-w-[60vw]">Gestión de Caja | {{ Nombreusuario }}</h1>
+    <header
+      class="bg-gradient-to-r bg-[#7c4e1a] text-white py-3 sm:py-4 shadow-md sticky top-0 z-40"
+    >
+      <div
+        class="container mx-auto flex flex-wrap items-center justify-between px-2 sm:px-4"
+      >
+        <h1 class="text-base sm:text-xl font-bold truncate max-w-[60vw]">
+          Gestión de Caja | {{ Nombreusuario }}
+        </h1>
         <!-- Botón hamburguesa -->
-        <button id="nav-toggle" class="sm:hidden flex items-center px-2 py-1 border rounded text-white border-white ml-2" aria-label="Abrir menú">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+        <button
+          id="nav-toggle"
+          class="sm:hidden flex items-center px-2 py-1 border rounded text-white border-white ml-2"
+          aria-label="Abrir menú"
+        >
+          <svg
+            class="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M4 6h16M4 12h16M4 18h16"
+            />
           </svg>
         </button>
-        <nav id="nav-menu" class="w-full sm:w-auto sm:flex hidden sm:items-center sm:space-x-4 mt-2 sm:mt-0">
+        <nav
+          id="nav-menu"
+          class="w-full sm:w-auto sm:flex hidden sm:items-center sm:space-x-4 mt-2 sm:mt-0"
+        >
           {% set current_path = request.path %}
           <a
             href="/auditoria"
@@ -37,6 +67,12 @@ set Nombreusuario = session['name'] %}
             Auditoría de {{ titulo }}
           </a>
           {% if sessionname == 'admin' %}
+          <a
+            href="/registrosauditoria"
+            class="block sm:inline font-semibold px-3 py-2 sm:px-4 sm:py-2 rounded shadow mb-1 sm:mb-0 {% if current_path == '/registrosauditoria' %}bg-[#b07c40] text-white{% else %}text-white{% endif %}"
+          >
+            Registros de Auditoría
+          </a>
           <a
             href="/mantenimiento"
             class="block sm:inline font-semibold px-3 py-2 sm:px-4 sm:py-2 rounded shadow mb-1 sm:mb-0 {% if current_path == '/mantenimiento' %}bg-[#b07c40] text-white{% else %}text-white{% endif %}"
@@ -48,22 +84,19 @@ set Nombreusuario = session['name'] %}
             href="{{ url_for('auth.logout') }}"
             class="inline-flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 bg-red-600 text-white font-semibold rounded-lg shadow hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-1 transition"
           >
-            <img
-              src="/static/img/logout.svg"
-              alt="Salir"
-              class="w-5 h-5"
-            />
+            <img src="/static/img/logout.svg" alt="Salir" class="w-5 h-5" />
           </a>
         </nav>
       </div>
+
       <script>
         // Responsive nav
-        document.addEventListener('DOMContentLoaded', function() {
-          const navToggle = document.getElementById('nav-toggle');
-          const navMenu = document.getElementById('nav-menu');
-          if(navToggle && navMenu) {
-            navToggle.addEventListener('click', function() {
-              navMenu.classList.toggle('hidden');
+        document.addEventListener("DOMContentLoaded", function () {
+          const navToggle = document.getElementById("nav-toggle");
+          const navMenu = document.getElementById("nav-menu");
+          if (navToggle && navMenu) {
+            navToggle.addEventListener("click", function () {
+              navMenu.classList.toggle("hidden");
             });
           }
         });
@@ -75,7 +108,8 @@ set Nombreusuario = session['name'] %}
       {% block content %}{% endblock %}
     </main>
 
-    <!-- JS de tu app -->
+    <!-- Application Resources -->
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/security.min.js') }}" defer></script>
   </body>
 </html>

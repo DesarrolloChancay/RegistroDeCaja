@@ -24,8 +24,8 @@ class RegistroVenta(db.Model):
     fecha_confirmacion_gerencia = db.Column(db.DateTime)
     confirmado_redes = db.Column(db.Boolean, default=False)
     vendedor_id = db.Column(db.String(100))
-    confirmado_por_gerencia = db.Column(db.String(100))
-    confirmado_por_redes = db.Column(db.String(100))
+    confirmador_cuenta = db.Column(db.String(100))
+    confirmador_voucher = db.Column(db.String(100))
 
     def estado_confirmacion(self):
         return "Confirmado" if self.confirmado else "Pendiente"

@@ -3,17 +3,63 @@
 {% if current_user.is_authenticated %} {% extends "base.html" %} {% block title
 %}Gestión de Caja - {{ titulo }}{% endblock %} {% block content %}
 <div class="bg-[#dfd0a5] rounded-xl shadow p-2 sm:p-6">
-  <h2 class="text-2xl font-semibold text-center mb-6">
+  <h2 class="text-2xl font-semibold text-center mb-4">
     Gestión de Caja - {{ titulo }}
   </h2>
 
-  {% if sessionname == 'admin' or sessionname == 'verificador' %}
+  <!-- Tabs para alternar entre registros por confirmar y confirmados -->
+  <div class="flex flex-row gap-2 justify-center mb-4">
+    <button
+      id="tab-por-confirmar"
+      class="tab-auditoria bg-[#b07c40] text-white px-4 py-2 rounded font-semibold shadow hover:opacity-90 cursor-pointer"
+      data-estado="por_confirmar"
+    >
+      Registros por confirmar
+    </button>
+    <button
+      id="tab-confirmados"
+      class="tab-auditoria bg-gray-300 text-gray-700 px-4 py-2 rounded font-semibold shadow hover:opacity-90 cursor-pointer"
+      data-estado="confirmados"
+    >
+      Registros confirmados
+    </button>
+  </div>
+
+  <!-- Buscador general en la tabla (filtro en tiempo real) -->
+
+  <div class="flex flex-row justify-end mb-2">
+    <div
+      class="flex items-center justify-end bg-gray-100 rounded-lg p-1 sm:w-64"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="h-5 w-5 text-gray-500 ml-2"
+        viewBox="0 0 20 20"
+        fill="currentColor"
+      >
+        <path
+          fill-rule="evenodd"
+          d="M12.9 14.32a8 8 0 111.414-1.414l4.387 4.387a1 1 0 01-1.414 1.414l-4.387-4.387zM14 8a6 6 0 11-12 0 6 6 0 0112 0z"
+          clip-rule="evenodd"
+        />
+      </svg>
+      <input
+        type="text"
+        id="buscador-general"
+        placeholder="Buscar en la tabla..."
+        autocomplete="off"
+        class="bg-gray-100 flex-grow px-3 py-2 text-gray-700 focus:outline-none"
+      />
+    </div>
+  </div>
+
   <!-- Filtro de rango de fechas y exportar -->
   <div
-    class="flex flex-col md:flex-row items-center justify-between gap-2 md:gap-4 mb-4 md:mb-6"
-  >
+    class="flex flex-col md:flex-row items-center justify-between gap-2 md:gap-4 mb-4 md:mb-6">
     <div class="flex flex-col sm:flex-row gap-2 items-center w-full">
-      <label class="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-2 w-full sm:w-auto">
+      <label
+        class="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-2 w-full sm:w-auto"
+      >
         <span class="text-gray-700 text-xs sm:text-sm">Desde</span>
         <input
           type="date"
@@ -21,7 +67,9 @@
           class="block border border-gray-300 rounded px-2 py-1 sm:px-3 sm:py-2 text-xs sm:text-sm w-full sm:w-auto"
         />
       </label>
-      <label class="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-2 w-full sm:w-auto">
+      <label
+        class="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-2 w-full sm:w-auto"
+      >
         <span class="text-gray-700 text-xs sm:text-sm">Hasta</span>
         <input
           type="date"
@@ -43,7 +91,7 @@
         Borrar filtros
       </button>
     </div>
-
+    {% if sessionname == 'admin' or sessionname == 'verificador' or sessionname == 'contabilidad' %}
     <div class="flex flex-row gap-2 w-full sm:w-auto justify-end">
       <button
         id="btn-exportar"
@@ -53,35 +101,48 @@
         Exportar
       </button>
     </div>
+    {% endif %}
   </div>
-  {% endif %}
 
   <!-- Selector de cantidad de registros por página (para todos los roles) -->
   <div class="flex flex-col sm:flex-row items-center justify-end gap-2 mb-2">
-    <label for="select-registros-pagina" class="mr-0 sm:mr-2 text-xs sm:text-sm text-gray-700">Mostrar</label>
-    <select id="select-registros-pagina" class="border border-gray-300 rounded px-2 py-1 text-xs sm:text-sm w-full sm:w-auto">
+    <label
+      for="select-registros-pagina"
+      class="mr-0 sm:mr-2 text-xs sm:text-sm text-gray-700"
+      >Mostrar</label
+    >
+    <select
+      id="select-registros-pagina"
+      class="border border-gray-300 rounded px-2 py-1 text-xs sm:text-sm w-full sm:w-auto"
+    >
       <option value="10">10</option>
       <option value="25">25</option>
       <option value="50">50</option>
       <option value="100">100</option>
     </select>
     <span class="ml-0 sm:ml-2 text-xs sm:text-sm text-gray-700">registros</span>
+    <!-- Botón de orden -->
+    <button
+      id="btn-ordenar-fecha"
+      type="button"
+      class="ml-2 px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm text-gray-700 flex items-center gap-1 bg-white hover:bg-gray-100"
+      style="display:none;"
+      title="Ordenar por fecha de confirmación"
+    >
+      <span id="icono-orden">&#10597;</span>
+      <span class="hidden sm:inline">Ordenar</span>
+    </button>
   </div>
 
   <!-- Controles de paginación estilo Tailwind adaptados (para todos los roles) -->
-  <div class="flex flex-col gap-2 items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 mt-4" id="paginacion_auditoria">
+  <div
+    class="flex flex-col gap-2 items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 mt-4"
+    id="paginacion_auditoria">
     <!-- Móvil: botones y números de página -->
-    <div class="flex flex-col w-full sm:hidden">
-      <div class="flex flex-1 justify-between w-full mb-1">
-        <button id="btn-pag-anterior-m" class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 w-1/2 mr-1">Anterior</button>
-        <button id="btn-pag-siguiente-m" class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 w-1/2 ml-1">Siguiente</button>
-      </div>
-      <div class="flex justify-center w-full">
-        <span id="paginas-numeros" class="flex"></span>
-      </div>
-    </div>
     <!-- Desktop: paginación y números -->
-    <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between w-full">
+    <div
+      class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between w-full"
+    >
       <div>
         <p class="text-sm text-gray-700">
           Mostrando
@@ -94,18 +155,45 @@
         </p>
       </div>
       <div>
-        <nav aria-label="Pagination" class="isolate inline-flex -space-x-px rounded-md shadow-xs">
-          <button id="btn-pag-anterior" class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 border border-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0">
+        <nav
+          aria-label="Pagination"
+          class="isolate inline-flex -space-x-px rounded-md shadow-xs"
+        >
+          <button
+            id="btn-pag-anterior"
+            class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 border border-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+          >
             <span class="sr-only">Anterior</span>
-            <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" class="size-5">
-              <path d="M11.78 5.22a.75.75 0 0 1 0 1.06L8.06 10l3.72 3.72a.75.75 0 1 1-1.06 1.06l-4.25-4.25a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0Z" clip-rule="evenodd" fill-rule="evenodd" />
+            <svg
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              aria-hidden="true"
+              class="size-5"
+            >
+              <path
+                d="M11.78 5.22a.75.75 0 0 1 0 1.06L8.06 10l3.72 3.72a.75.75 0 1 1-1.06 1.06l-4.25-4.25a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0Z"
+                clip-rule="evenodd"
+                fill-rule="evenodd"
+              />
             </svg>
           </button>
           <span id="paginas-numeros" class="flex"></span>
-          <button id="btn-pag-siguiente" class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 border border-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0">
+          <button
+            id="btn-pag-siguiente"
+            class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 border border-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+          >
             <span class="sr-only">Siguiente</span>
-            <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" class="size-5">
-              <path d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" fill-rule="evenodd" />
+            <svg
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              aria-hidden="true"
+              class="size-5"
+            >
+              <path
+                d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z"
+                clip-rule="evenodd"
+                fill-rule="evenodd"
+              />
             </svg>
           </button>
         </nav>
@@ -113,22 +201,69 @@
     </div>
   </div>
 
+  <!-- Tabla de auditoría -->
   <div class="overflow-x-auto w-full">
     <table class="min-w-full text-xs sm:text-sm text-left border-t">
-      <thead class="bg-gray-100 text-gray-700 uppercase text-[10px] sm:text-xs md:text-sm">
+      <thead
+        class="bg-gray-100 text-gray-700 uppercase text-[10px] sm:text-xs md:text-sm"
+      >
         <tr>
-          <th class="px-1 py-1 sm:px-2 sm:py-2 whitespace-nowrap truncate max-w-[90px]">Fecha Registro<br class="block sm:hidden"/>Sistema</th>
-          <th class="px-1 py-1 sm:px-2 sm:py-2 whitespace-nowrap truncate max-w-[90px]">Transacción</th>
-          <th class="px-1 py-1 sm:px-2 sm:py-2 whitespace-nowrap truncate max-w-[90px]">Responsable</th>
-          <th class="px-1 py-1 sm:px-2 sm:py-2 whitespace-nowrap truncate max-w-[90px]">Empresa</th>
-          <th class="px-1 py-1 sm:px-2 sm:py-2 whitespace-nowrap truncate max-w-[90px]">Banco</th>
-          <th class="px-1 py-1 sm:px-2 sm:py-2 whitespace-nowrap truncate max-w-[70px]">Monto</th>
-          <th class="px-1 py-1 sm:px-2 sm:py-2 whitespace-nowrap truncate max-w-[100px]">Detalle</th>
-          <th class="px-1 py-1 sm:px-2 sm:py-2 whitespace-nowrap truncate max-w-[120px]">Fecha Voucher<br class="block sm:hidden"/>Confirmación Redes</th>
-          <th class="px-1 py-1 sm:px-2 sm:py-2 whitespace-nowrap truncate max-w-[100px]">Confirmación Redes</th>
-          {% if sessionname == 'admin' or sessionname == 'verificador' %}
-          <th class="px-1 py-1 sm:px-2 sm:py-2 whitespace-nowrap truncate max-w-[120px]">Fecha Ingreso Dinero</th>
-          <th class="px-1 py-1 sm:px-2 sm:py-2 whitespace-nowrap truncate max-w-[120px]">Confirmar Pago Gerencia</th>
+          <th
+            class="px-1 py-1 sm:px-2 sm:py-2 whitespace-nowrap truncate max-w-[90px]"
+          >
+            Fecha Registro<br class="block sm:hidden" />Sistema
+          </th>
+          <th
+            class="px-1 py-1 sm:px-2 sm:py-2 whitespace-nowrap truncate max-w-[90px]"
+          >
+            Transacción
+          </th>
+          <th
+            class="px-1 py-1 sm:px-2 sm:py-2 whitespace-nowrap truncate max-w-[90px]"
+          >
+            Responsable
+          </th>
+          <th
+            class="px-1 py-1 sm:px-2 sm:py-2 whitespace-nowrap truncate max-w-[90px]"
+          >
+            Empresa
+          </th>
+          <th
+            class="px-1 py-1 sm:px-2 sm:py-2 whitespace-nowrap truncate max-w-[90px]"
+          >
+            Banco
+          </th>
+          <th
+            class="px-1 py-1 sm:px-2 sm:py-2 whitespace-nowrap truncate max-w-[70px]"
+          >
+            Monto
+          </th>
+          <th
+            class="px-1 py-1 sm:px-2 sm:py-2 whitespace-nowrap truncate max-w-[100px]"
+          >
+            Detalle
+          </th>
+          <th
+            class="px-1 py-1 sm:px-2 sm:py-2 whitespace-nowrap truncate max-w-[120px]"
+          >
+            Fecha Voucher
+          </th>
+          <th
+            class="px-1 py-1 sm:px-2 sm:py-2 whitespace-nowrap truncate max-w-[100px]"
+          >
+            Confirmación Redes
+          </th>
+          {% if sessionname == 'admin' or sessionname == 'verificador' or sessionname == 'contabilidad' %}
+          <th
+            class="px-1 py-1 sm:px-2 sm:py-2 whitespace-nowrap truncate max-w-[120px]"
+          >
+            Fecha Ingreso Dinero
+          </th>
+          <th
+            class="px-1 py-1 sm:px-2 sm:py-2 whitespace-nowrap truncate max-w-[120px]"
+          >
+            Confirmar Pago Gerencia
+          </th>
           {% endif %}
         </tr>
       </thead>
@@ -185,6 +320,8 @@
                 ¿Estás seguro de confirmar esta transacción? Esta acción es
                 irreversible.
               </p>
+              <!-- Aquí se insertará dinámicamente el textarea de motivo para admin -->
+              <div id="motivo-admin-modal-destino"></div>
             </div>
           </div>
         </div>
@@ -210,4 +347,18 @@
     </div>
   </dialog>
 </el-dialog>
+
+{% if sessionname == 'admin' %}
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+{% endif %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    fetch('/auditoria/fechas-extremos')
+      .then(res => res.json())
+      .then(data => {
+        if (data.min_fecha) document.getElementById('fecha_desde').value = data.min_fecha;
+        if (data.max_fecha) document.getElementById('fecha_hasta').value = data.max_fecha;
+      });
+  });
+</script>
 {% endblock %} {% endif %}

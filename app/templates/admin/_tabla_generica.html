@@ -1,7 +1,7 @@
-  {# Partial para renderizar tablas genéricas con paginación y formulario de agregar #}
+{# Partial para renderizar tablas genéricas con paginación y formulario de agregar #}
 <div class="mb-4 flex flex-col sm:flex-row justify-between items-center gap-2">
   <h3 class="text-lg sm:text-xl font-bold">{{ titulo_tabla }}</h3>
-  <button class="bg-green-600 text-white px-3 py-1 rounded font-semibold w-full sm:w-auto" onclick='abrirModalAgregar("{{ tab }}", {{ campos|tojson|safe }})'>Agregar</button>
+  <button class="bg-green-600 text-white px-3 py-1 rounded font-semibold w-full sm:w-auto" onclick='abrirModalAgregar("{{ tab }}", {{ campos|tojson }})'>Agregar</button>
 </div>
 <!-- Modal Tailwind reutilizable para agregar -->
 <div id="modal-agregar" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 transition-all">

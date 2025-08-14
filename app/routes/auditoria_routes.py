@@ -1,3 +1,4 @@
+from app.controllers.auditoria_controller import confirmar_redes_masivo, confirmar_gerencia_masivo
 from flask import send_file
 import io
 import pandas as pd
@@ -10,12 +11,22 @@ from flask import request
 
 auditoria_bp = Blueprint('auditoria', __name__)
 
+
+@auditoria_bp.route('/auditoria/fechas-extremos', methods=['GET'])
+@login_required
+def fechas_extremos():
+    from app.extensions import db
+    from sqlalchemy import text
+    result = db.session.execute(text('SELECT MIN(fecha_registro_pago) as min_fecha, MAX(fecha_registro_pago) as max_fecha FROM registros_ventas'))
+    row = result.fetchone()
+    return {'min_fecha': str(row.min_fecha) if row.min_fecha else '', 'max_fecha': str(row.max_fecha) if row.max_fecha else ''}
+
 # Exportar todos los registros a Excel
 @auditoria_bp.route('/auditoria/exportar', methods=['GET'])
 @login_required
 def exportar_auditoria():
     # Solo admin y verificador pueden exportar
-    if not hasattr(current_user, 'rol') or current_user.rol.nombre not in ('admin', 'verificador'):
+    if not hasattr(current_user, 'rol') or current_user.rol.nombre not in ('admin', 'verificador', 'contabilidad'):
         return render_template('403.html'), 403
 
     # Traer todos los registros con los campos y joins necesarios
@@ -32,7 +43,7 @@ def exportar_auditoria():
             rv.monto AS TOTAL,
             mp.nombre AS "MEDIO DE PAGO"
         FROM registros_ventas rv
-        LEFT JOIN usuarios ur ON rv.confirmado_por_redes = ur.id
+        LEFT JOIN usuarios ur ON rv.confirmador_voucher = ur.id
         LEFT JOIN areas a ON rv.area_id = a.id
         LEFT JOIN centros_costo cc ON rv.centro_costo_id = cc.id
         LEFT JOIN empresas e ON rv.empresa_id = e.id
@@ -94,8 +105,12 @@ def auditoria_tabla():
     por_pagina = int(request.form.get('por_pagina', 10))
     fecha_desde = request.form.get('fecha_desde')
     fecha_hasta = request.form.get('fecha_hasta')
+    estado_confirmacion = request.form.get('estado_confirmacion', 'por_confirmar')
+    # Ordenamiento
+    orden_campo = request.form.get('orden_campo')
+    orden_dir = request.form.get('orden_dir')
     # Traer todos los registros filtrados
-    registros_all = auditoria_registros(fecha_desde, fecha_hasta)
+    registros_all = auditoria_registros(fecha_desde, fecha_hasta, estado_confirmacion, orden_campo, orden_dir)
     total = len(registros_all)
     inicio = (pagina - 1) * por_pagina
     fin = inicio + por_pagina
@@ -119,3 +134,15 @@ def confirmar_redes_route(registro_id):
 @login_required
 def confirmar_gerencia_route(registro_id):
     return confirmar_gerencia(registro_id)
+
+# Confirmación masiva para vendedor
+@auditoria_bp.route('/confirmar_redes_masivo', methods=['POST'])
+@login_required
+def confirmar_redes_masivo_route():
+    return confirmar_redes_masivo()
+
+# Confirmación masiva para verificador
+@auditoria_bp.route('/confirmar_gerencia_masivo', methods=['POST'])
+@login_required
+def confirmar_gerencia_masivo_route():
+    return confirmar_gerencia_masivo()

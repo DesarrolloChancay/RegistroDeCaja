@@ -1,4 +1,3 @@
-
 # Archivo: app/controllers/admin_controller.py
 
 from flask import render_template, request, jsonify
@@ -11,6 +10,14 @@ from app.models.registro_venta import RegistroVenta
 from sqlalchemy import text
 from zoneinfo import ZoneInfo
 from datetime import datetime
+import bcrypt
+
+
+# Función para hashear contraseñas
+def hash_password(password: str) -> str:
+    hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+    return hashed.decode('utf-8')
+
 
 # Decorador para restringir solo a admin
 def admin_required(f):
@@ -22,41 +29,139 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+from sqlalchemy import or_
+# --- AJAX: Tabla de registros de auditoría (v_auditoria_registros) ---
+from flask import session
+
 @login_required
 @admin_required
+def tabla_registrosauditoria():
+    pagina = int(request.form.get('pagina', 1))
+    por_pagina = int(request.form.get('por_pagina', 10))
+    fecha_desde = request.form.get('fecha_desde')
+    fecha_hasta = request.form.get('fecha_hasta')
+    busqueda = request.form.get('busqueda', '').strip()
+    
+    # Consulta base solo filtros
+    sql_base = '''SELECT * FROM v_auditoria_registros WHERE 1=1'''
+    params = {}
+    orden_campo = request.form.get('orden_campo')
+    orden_dir = request.form.get('orden_dir')
+    
+    # Filtros de fecha
+    if fecha_desde and not fecha_hasta:
+        sql_base += ' AND DATE(fecha_cambio) = :fecha_desde'
+        params['fecha_desde'] = fecha_desde
+    elif fecha_desde and fecha_hasta:
+        sql_base += ' AND fecha_cambio >= :fecha_desde AND fecha_cambio <= :fecha_hasta'
+        params['fecha_desde'] = fecha_desde
+        params['fecha_hasta'] = fecha_hasta
+    elif fecha_hasta and not fecha_desde:
+        sql_base += ' AND DATE(fecha_cambio) = :fecha_hasta'
+        params['fecha_hasta'] = fecha_hasta
+        
+    if busqueda:
+        sql_base += ''' AND (
+            recibo LIKE :b OR
+            usuario_nombre LIKE :b OR
+            accion LIKE :b OR
+            campo_modificado LIKE :b OR
+            valor_anterior LIKE :b OR
+            valor_nuevo LIKE :b OR
+            motivo_cambio LIKE :b OR
+            ip_usuario LIKE :b
+        )'''
+        params['b'] = f'%{busqueda}%'
+        
+    # Conteo total sin ORDER ni LIMIT
+    total = db.session.execute(text(f'SELECT COUNT(*) FROM ({sql_base}) as t'), params).scalar()
+    
+    # Ordenamiento dinámico seguro
+    campo = 'fecha_cambio'
+    if orden_campo in ['fecha_confirmacion_redes', 'fecha_confirmacion_gerencia', 'fecha_cambio']:
+        campo = orden_campo
+        
+    direccion = 'DESC'
+    if orden_dir and str(orden_dir).lower() in ['asc', 'desc']:
+        direccion = orden_dir.upper()
+        
+    sql = sql_base + f' ORDER BY {campo} {direccion}'
+    
+    # Paginación
+    inicio = (pagina - 1) * por_pagina
+    sql += ' LIMIT :lim OFFSET :off'
+    params['lim'] = por_pagina
+    params['off'] = inicio
+    
+    rows = db.session.execute(text(sql), params).fetchall()
+    registros = [dict(row._mapping) for row in rows]
+    hay_mas = (inicio + por_pagina) < total
+    
+    html = render_template('admin/_tabla_registrosauditoria.html', registros=registros)
+    return {'html': html, 'hay_mas': hay_mas, 'total': total}
+
+@login_required
 def editar_fecha_voucher():
-    registro_id = request.form.get('id')
-    nueva_fecha = request.form.get('fecha')
-    if not registro_id or not nueva_fecha:
+    data = request.get_json(silent=True) or {}
+    registro_id = data.get('id')
+    nueva_fecha = data.get('fecha')
+    motivo = data.get('motivo')
+    if not registro_id or not nueva_fecha or not motivo:
         return jsonify({'success': False, 'error': 'Datos incompletos'}), 400
+    from sqlalchemy.orm import sessionmaker
     reg = RegistroVenta.query.get(registro_id)
     if not reg:
         return jsonify({'success': False, 'error': 'Registro no encontrado'}), 404
     try:
-        reg.fecha_comprobante = datetime.strptime(nueva_fecha, "%Y-%m-%d").date()
-        reg.vendedor_id = current_user.id
-        # reg.fecha_edicion_admin = datetime.now(ZoneInfo("America/Lima"))  # <-- Descomentar cuando exista la columna
-        db.session.commit()
+
+        from app.controllers.auditoria_controller import obtener_ip
+        ip = obtener_ip()
+        Session = sessionmaker(bind=db.engine)
+        with db.engine.begin() as connection:
+            session = Session(bind=connection)
+            connection.execute(
+                text("CALL SetAuditContext(:user_id, :reason, :ip)"),
+                {"user_id": current_user.id, "reason": motivo, "ip": ip}
+            )
+            reg = session.get(RegistroVenta, registro_id)
+            reg.fecha_comprobante = datetime.strptime(nueva_fecha, "%Y-%m-%d %H:%M")
+            reg.vendedor_id = current_user.id
+            session.commit()
+            connection.execute(text("CALL ClearAuditContext()"))
         return jsonify({'success': True})
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
 
 @login_required
 @admin_required
 def editar_fecha_ingreso():
     registro_id = request.form.get('id')
     nueva_fecha = request.form.get('fecha')
-    if not registro_id or not nueva_fecha:
-        return jsonify({'success': False, 'error': 'Datos incompletos'}), 400
+    motivo = request.form.get('motivo', '').strip()
+    if not registro_id or not nueva_fecha or not motivo:
+        return jsonify({'success': False, 'error': 'Datos incompletos o motivo obligatorio'}), 400
+    from sqlalchemy.orm import sessionmaker
     reg = RegistroVenta.query.get(registro_id)
     if not reg:
         return jsonify({'success': False, 'error': 'Registro no encontrado'}), 404
     try:
-        reg.fecha_ingreso_cuenta = datetime.strptime(nueva_fecha, "%Y-%m-%d").date()
-        reg.vendedor_id = current_user.id
-        # reg.fecha_edicion_admin = datetime.now(ZoneInfo("America/Lima"))  # <-- Descomentar cuando exista la columna
-        db.session.commit()
+        from app.controllers.auditoria_controller import obtener_ip
+        ip = obtener_ip()
+        Session = sessionmaker(bind=db.engine)
+        with db.engine.begin() as connection:
+            session = Session(bind=connection)
+            connection.execute(
+                text("CALL SetAuditContext(:user_id, :reason, :ip)"),
+                {"user_id": current_user.id, "reason": motivo, "ip": ip}
+            )
+            reg = session.get(RegistroVenta, registro_id)
+            reg.fecha_ingreso_cuenta = datetime.strptime(nueva_fecha, "%Y-%m-%d").date()
+            reg.vendedor_id = current_user.id
+            session.commit()
+            connection.execute(text("CALL ClearAuditContext()"))
         return jsonify({'success': True})
     except Exception as e:
         db.session.rollback()
@@ -66,6 +171,11 @@ def editar_fecha_ingreso():
 @admin_required
 def admin_mantenimiento():
     return render_template('admin/mantenimiento.html')
+
+@login_required
+@admin_required
+def admin_registros_auditoria():
+    return render_template('admin/registrosauditoria.html')
 
 # --- AJAX: Empresas ---
 @login_required
@@ -168,7 +278,7 @@ def agregar_usuario():
     idu = request.form.get('id')
     nombre = request.form.get('nombre')
     correo = request.form.get('correo')
-    contrasena = request.form.get('contrasena')
+    contrasena = hash_password(request.form.get('contrasena'))
     rol = request.form.get('rol')
     if not (idu and nombre and correo and contrasena and rol):
         return jsonify({'success': False, 'error': 'Todos los campos son requeridos'})
