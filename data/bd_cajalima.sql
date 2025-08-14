@@ -153,11 +153,13 @@ INSERT INTO usuarios (id, nombre, correo, contrasena, rol_id) VALUES
 ('vend02', 'Estefany Aguirre', 'redes@castillodechancay.com', '$2b$12$MiwMi8t.URMdCr3cdD9wceCtK5bnkUkkiGLxg/GP2GMWlt1NOXx6.', 2),
 ('vend03', 'Elias Sanchez', 'ventas2@castillodechancay.com', '$2b$12$VzyVakHHzTeaynbFsCkeaObdl29CceeV4FnTEg8hbFbBepNzQNENy', 2),
 ('verif01', 'Ana Zavala', 'asistente.gerencia.lima@castillodechancay.com', '$2b$12$vXn/LKmrYSyB50ex202nSuBvfATlroXWtLNMEEjXBZ5XhndTNDBi2', 3),
-('verif02', 'Yolanda Pacheco', 'gerenciacastillochancay@hotmail.com', '$2b$12$k2yfxjtEGCqcZ3mriHfeUe7lLSHbfS6mOQRkDCwyC0khQ3uhd/G9.', 3)
+('verif02', 'Yolanda Pacheco', 'gerenciacastillochancay@hotmail.com', '$2b$12$k2yfxjtEGCqcZ3mriHfeUe7lLSHbfS6mOQRkDCwyC0khQ3uhd/G9.', 3),
+('cont01', 'Jhon Doe', 'jhondoe@castillodechancay.com', '$2b$12$/98in5H5an.yCAeYx2YiiOd65lQO6YBGDMDWweuo5KPK/U/Z3SKiO', 4)
 ON DUPLICATE KEY UPDATE nombre=VALUES(nombre);
 
 -- Insertar registros de ventas (ejemplos)
 INSERT INTO registros_ventas (
+    id_xafiro,
     recibo,
     medio_pago_id,
     entidad_banco_id,
@@ -191,7 +193,13 @@ INSERT INTO registros_ventas (
 (0012, 'REC012', 6, 2, 2, 2, 'Depósito de cliente B', 1, 950.00, 0, '2025-08-12', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
 (0013, 'REC013', 7, 3, 3, 3, 'Pago por servicios de diseño web', 1, 600.00, 0, '2025-08-13', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
 (0014, 'REC014', 3, 4, 1, 1, 'Venta de desayuno buffet', 1, 120.00, 0, '2025-08-14', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-(0015, 'REC015', 8, 1, 2, 2, 'Otros ingresos', 1, 25.00, 0, '2025-08-15', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL);
+(0015, 'REC015', 8, 1, 2, 2, 'Otros ingresos', 1, 25.00, 0, '2025-08-15', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+(0016, 'REC016', 5, 3, 3, 3, 'Pago de factura pendiente', 1, 320.00, 0, '2025-08-10', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+(0017, 'REC017', 1, 1, 1, 1, 'Pago por servicios de lavandería', 1, 45.00, 0, '2025-08-11', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+(0018, 'REC018', 6, 2, 2, 2, 'Depósito de cliente B', 1, 950.00, 0, '2025-08-12', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+(0019, 'REC019', 7, 3, 3, 3, 'Pago por servicios de diseño web', 1, 600.00, 0, '2025-08-13', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+(0020, 'REC020', 3, 4, 1, 1, 'Venta de desayuno buffet', 1, 120.00, 0, '2025-08-14', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
+(0021, 'REC021', 8, 1, 2, 2, 'Otros ingresos', 1, 25.00, 0, '2025-08-15', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL);
 
 
 
