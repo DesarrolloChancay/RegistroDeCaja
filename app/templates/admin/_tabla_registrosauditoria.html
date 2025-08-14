@@ -6,7 +6,7 @@
 {% else %}
 {% for r in registros %}
 <tr class="bg-white border-b">
-  <td class="px-4 py-2">{{ r.fecha_cambio.strftime('%d-%m-%Y %H:%M') if r.fecha_cambio else 'N/A' }}</td>
+  <td class="px-4 py-2">{{ r.fecha_cambio.strftime('%d-%m-%Y %H:%M') if r.fecha_cambio else 'Sin fecha' }}</td>
   <td class="px-4 py-2">{{ r.recibo }}</td>
   <td class="px-4 py-2">{{ r.usuario_nombre }}</td>
   <td class="px-4 py-2">{{ r.accion }}</td>

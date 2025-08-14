@@ -63,7 +63,7 @@ CREATE TABLE registros_ventas (
     monto DECIMAL(10,2),
     confirmado BOOLEAN DEFAULT 0,
     fecha_registro_pago DATE, -- Va a venir de sistema Xafiro
-    fecha_comprobante DATE, -- Fecha que ingresa redes del comprobante
+    fecha_comprobante DATETIME, -- Fecha que ingresa redes del comprobante
     fecha_ingreso_cuenta DATE, -- Fecha que corrobora gerencia de cuando entró el pago a la cuenta
     fecha_confirmacion_redes DATETIME, -- Fecha automática cuando se confirma por redes
     fecha_confirmacion_gerencia DATETIME, -- Fecha automática cuando se confirma por gerencia

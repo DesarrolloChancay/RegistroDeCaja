@@ -114,7 +114,18 @@ def confirmar_redes(registro_id):
             )
             registro = session.get(RegistroVenta, registro_id)
             registro.confirmado_redes = True
-            registro.fecha_comprobante = datetime.strptime(fecha_comprobante_str, "%Y-%m-%d").date()
+            # Si es admin o vendedor, permitir fecha y hora
+            try:
+                registro.fecha_comprobante = datetime.strptime(fecha_comprobante_str, "%Y-%m-%d %H:%M")
+            except ValueError as e:
+                # Si falla, intentar solo la fecha y mostrar error específico
+                try:
+                    fecha_sin_hora = datetime.strptime(fecha_comprobante_str, "%Y-%m-%d")
+                    if current_user.rol.nombre in ['admin', 'vendedor']:
+                        return jsonify({"success": False, "error": "El formato de fecha y hora debe ser YYYY-MM-DD HH:MM"}), 400
+                    registro.fecha_comprobante = fecha_sin_hora.replace(hour=0, minute=0)
+                except ValueError:
+                    return jsonify({"success": False, "error": "Formato de fecha inválido. Use YYYY-MM-DD HH:MM"}), 400
             registro.fecha_confirmacion_redes = datetime.now(ZoneInfo("America/Lima"))
             registro.confirmador_voucher = current_user.id
             session.commit()
@@ -211,7 +222,17 @@ def confirmar_redes_masivo():
                     {"user_id": current_user.id, "reason": "Confirmación masiva redes", "ip": ip})
                 rv = session.get(RegistroVenta, id)
                 if rv and not rv.confirmado_redes:
-                    rv.fecha_comprobante = datetime.strptime(fecha, "%Y-%m-%d").date()
+                    try:
+                        # Para admin y vendedor, requerir fecha y hora
+                        rv.fecha_comprobante = datetime.strptime(fecha, "%Y-%m-%d %H:%M")
+                    except ValueError as e:
+                        try:
+                            fecha_sin_hora = datetime.strptime(fecha, "%Y-%m-%d")
+                            if current_user.rol.nombre in ['admin', 'vendedor']:
+                                raise ValueError("El formato de fecha y hora debe ser YYYY-MM-DD HH:MM")
+                            rv.fecha_comprobante = fecha_sin_hora.replace(hour=0, minute=0)
+                        except ValueError as ve:
+                            return jsonify({"success": False, "error": str(ve)}), 400
                     rv.confirmado_redes = 1
                     rv.confirmador_voucher = current_user.id
                     rv.fecha_confirmacion_redes = datetime.now(ZoneInfo("America/Lima"))

@@ -108,7 +108,7 @@ function cargarPaginaAuditoria(pagina, filtros = null) {
             htmlPaginas += '<button class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 border border-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0" data-pag="' + totalPaginas + '">' + totalPaginas + '</button>';
         }
         // Actualizar paginación en ambos contenedores (móvil y desktop)
-        $('#paginas-numeros').each(function(){
+        $('#paginas-numeros').each(function () {
             $(this).html(htmlPaginas);
         });
 
@@ -136,10 +136,17 @@ $(document).ready(function () {
         let $filas = $('#registros_auditoria tr').not('#no-registros-row');
         if (window.sessionRol === 'vendedor') {
             $filas.each(function () {
-                let $input = $(this).find('input[id^="fecha_redes_"]');
-                if ($input.length && $input.val() && !$input.prop('disabled')) {
-                    const id = $input.attr('id').replace('fecha_redes_', '');
-                    datos.push({ id, fecha: $input.val() });
+                let $inputFecha = $(this).find('input[id^="fecha_redes_"]');
+                let $inputHora = $(this).find('input[id^="hora_redes_"]');
+                if ($inputFecha.length && $inputFecha.val() &&
+                    $inputHora.length && $inputHora.val() &&
+                    !$inputFecha.prop('disabled')) {
+                    const id = $inputFecha.attr('id').replace('fecha_redes_', '');
+                    const fecha = $inputFecha.val();
+                    const hora = $inputHora.val().trim();
+                    // Asegurar que la fecha y hora estén en el formato correcto
+                    const fechaHora = fecha + ' ' + hora;
+                    datos.push({ id, fecha: fechaHora });
                 }
             });
         } else if (window.sessionRol === 'verificador') {
@@ -200,25 +207,25 @@ $(document).ready(function () {
     $(document).on('click', '.tab-auditoria', function () {
         $('.tab-auditoria').removeClass('bg-[#b07c40] text-white').addClass('bg-gray-300 text-gray-700');
         $(this).removeClass('bg-gray-300 text-gray-700').addClass('bg-[#b07c40] text-white');
-    estadoConfirmacion = $(this).data('estado');
-    actualizarBotonOrden();
-    cargarPaginaAuditoria(1, {});
-    // Lógica de botón de orden
-    $('#btn-ordenar-fecha').on('click', function () {
-        // Alternar dirección
-        ordenFecha = (ordenFecha === 'desc') ? 'asc' : 'desc';
-        // Cambiar icono
-        $('#icono-orden').html(ordenFecha === 'desc' ? '&#10597;' : '&#10595;');
-
-        if (ordenFecha === 'desc') {
-            msg = 'Se ha ordenado de mayor a menor'
-            mostrarAlerta(msg, 'success');
-        } else {
-            msg = 'Se ha ordenado de menor a mayor'
-            mostrarAlerta(msg, 'success');
-        }
+        estadoConfirmacion = $(this).data('estado');
+        actualizarBotonOrden();
         cargarPaginaAuditoria(1, {});
-    });
+        // Lógica de botón de orden
+        $('#btn-ordenar-fecha').on('click', function () {
+            // Alternar dirección
+            ordenFecha = (ordenFecha === 'desc') ? 'asc' : 'desc';
+            // Cambiar icono
+            $('#icono-orden').html(ordenFecha === 'desc' ? '&#10597;' : '&#10595;');
+
+            if (ordenFecha === 'desc') {
+                msg = 'Se ha ordenado de mayor a menor'
+                mostrarAlerta(msg, 'success');
+            } else {
+                msg = 'Se ha ordenado de menor a mayor'
+                mostrarAlerta(msg, 'success');
+            }
+            cargarPaginaAuditoria(1, {});
+        });
     });
 
     $('#select-registros-pagina').on('change', function () {
@@ -291,57 +298,13 @@ $('#btn-pag-siguiente').on('click', function () {
 
 // --- Guardar edición de fechas (solo admin) ---
 
-function guardarFechaVoucher(id) {
-    const input = document.getElementById(`fecha_redes_${id}`);
-    const fecha = input?.value;
-    if (!fecha) {
-        alert('Por favor, selecciona una fecha.');
-        return;
-    }
-    let mensaje = `¿Deseas guardar la fecha <b>${fecha}</b> para el voucher? Esta acción es irreversible y quedará registrada en auditoría.`;
-    mostrarDialogoConfirmacion({
-        titulo: 'Confirmar edición de fecha de voucher',
-        mensaje: mensaje,
-        textoBoton: 'Guardar fecha',
-        onConfirm: function (motivo) {
-            $.ajax({
-                url: '/admin/editar_fecha_voucher',
-                method: 'POST',
-                data: { id: id, fecha: fecha, motivo: motivo },
-                success: function (resp) {
-                    if (resp.success) {
-                        actualizarTablaAuditoria();
-                    } else {
-                        alert(resp.error || 'Error al guardar fecha.');
-                    }
-                },
-                error: function (xhr) {
-                    alert('Error en el servidor: ' + (xhr.responseJSON?.error || xhr.statusText));
-                }
-            });
-        }
-    });
-    // Insertar textarea de motivo solo para admin después de abrir el modal
-    setTimeout(function () {
-        if (window.sessionRol === 'admin') {
-            var $motivoDestino = $('#motivo-admin-modal-destino');
-            $motivoDestino.empty();
-            $motivoDestino.append(`
-                <div class='mt-4 w-full' id='motivo-admin-modal'>
-                    <label for='motivo-admin' class='block text-sm font-medium text-gray-700 mb-1'>Motivo (obligatorio):</label>
-                    <textarea id='motivo-admin' class='block w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring focus:ring-yellow-200 focus:border-yellow-400 resize-none' rows='2' required placeholder='Describe el motivo de la edición...'></textarea>
-                </div>
-            `);
-        }
-    }, 100);
-}
 
 
 function guardarFechaIngreso(id) {
     const input = document.getElementById(`fecha_ingreso_cuenta_${id}`);
     const fecha = input?.value;
     if (!fecha) {
-        alert('Por favor, selecciona una fecha.');
+        mostrarAlerta('Por favor, selecciona una fecha.', 'error');
         return;
     }
     let mensaje = `¿Deseas guardar la fecha <b>${fecha}</b> para el ingreso de dinero? Esta acción es irreversible y quedará registrada en auditoría.`;
@@ -358,11 +321,11 @@ function guardarFechaIngreso(id) {
                     if (resp.success) {
                         actualizarTablaAuditoria();
                     } else {
-                        alert(resp.error || 'Error al guardar fecha.');
+                        mostrarAlerta(resp.error || 'Error al guardar fecha.', 'error');
                     }
                 },
                 error: function (xhr) {
-                    alert('Error en el servidor: ' + (xhr.responseJSON?.error || xhr.statusText));
+                    mostrarAlerta('Error en el servidor: ' + (xhr.responseJSON?.error || xhr.statusText), 'error');
                 }
             });
         }
@@ -384,23 +347,27 @@ function guardarFechaIngreso(id) {
 
 function confirmarRedes(id) {
     const inputFecha = document.getElementById(`fecha_redes_${id}`);
-    const fechaSeleccionada = inputFecha?.value;
+    const inputHora = document.getElementById(`hora_redes_${id}`);
+    const fecha = inputFecha?.value;
+    const hora = inputHora?.value;
 
-    if (!fechaSeleccionada) {
-        alert("⚠️ Por favor, selecciona una fecha para confirmar redes.");
+    if (!fecha || !hora) {
+        mostrarAlerta('Debe de seleccionar una fecha y hora para confirmar', 'error');
         return;
     }
 
+    const fechaHora = `${fecha} ${hora}`;
+
     mostrarDialogoConfirmacion({
         titulo: "Confirmar desde Redes",
-        mensaje: "¿Deseas confirmar esta transacción desde redes? Esta acción es irreversible.",
+        mensaje: `¿Deseas confirmar esta transacción desde redes con fecha y hora ${fechaHora}? Esta acción es irreversible.`,
         textoBoton: "Sí, confirmar",
         onConfirm: () => {
             $.ajax({
                 url: `/confirmar_redes/${id}`,
                 method: "POST",
                 contentType: "application/json",
-                data: JSON.stringify({ fecha: fechaSeleccionada }),
+                data: JSON.stringify({ fecha: fechaHora }),
                 success: function (data) {
                     if (data.success) {
                         mostrarAlerta('¡Confirmación exitosa!', 'success');
@@ -423,7 +390,7 @@ function confirmarGerencia(id) {
     const fechaSeleccionada = inputFecha?.value;
 
     if (!fechaSeleccionada) {
-        alert("⚠️ Por favor, selecciona una fecha para confirmar gerencia.");
+        mostrarAlerta("⚠️ Por favor, selecciona una fecha para confirmar", 'error');
         return;
     }
 
@@ -452,20 +419,20 @@ function confirmarGerencia(id) {
             });
         }
     });
-// Alerta visual tipo login (reutilizable)
-function mostrarAlerta(mensaje, tipo = 'success') {
-    // Elimina alertas previas
-    $('.alert-auditoria').remove();
-    let color = tipo === 'success' ? 'bg-green-500' : 'bg-red-500';
-    let html = `<div class="alert-auditoria fixed top-4 left-1/2 transform -translate-x-1/2 z-50 ${color} text-white px-6 py-3 rounded shadow transition-all opacity-0">${mensaje}</div>`;
-    $('body').append(html);
-    let $alert = $('.alert-auditoria');
-    setTimeout(() => $alert.removeClass('opacity-0').addClass('opacity-100'), 50);
-    setTimeout(() => {
-        $alert.removeClass('opacity-100').addClass('opacity-0');
-        setTimeout(() => $alert.remove(), 500);
-    }, 3000);
-}
+    // Alerta visual tipo login (reutilizable)
+    function mostrarAlerta(mensaje, tipo = 'success') {
+        // Elimina alertas previas
+        $('.alert-auditoria').remove();
+        let color = tipo === 'success' ? 'bg-green-500' : 'bg-red-500';
+        let html = `<div class="alert-auditoria fixed top-4 left-1/2 transform -translate-x-1/2 z-50 ${color} text-white px-6 py-3 rounded shadow transition-all opacity-0">${mensaje}</div>`;
+        $('body').append(html);
+        let $alert = $('.alert-auditoria');
+        setTimeout(() => $alert.removeClass('opacity-0').addClass('opacity-100'), 50);
+        setTimeout(() => {
+            $alert.removeClass('opacity-100').addClass('opacity-0');
+            setTimeout(() => $alert.remove(), 500);
+        }, 3000);
+    }
 }
 
 
@@ -507,7 +474,7 @@ function mostrarDialogoConfirmacion({ titulo, mensaje, textoBoton, onConfirm }) 
         if (window.sessionRol === 'admin') {
             motivo = document.getElementById('motivo-admin')?.value || '';
             if (!motivo.trim()) {
-                alert('El motivo es obligatorio para admin.');
+                mostrarAlerta('El motivo es obligatorio para admin.', 'error');
                 document.getElementById('motivo-admin').focus();
                 return;
             }
@@ -526,6 +493,9 @@ function actualizarTablaAuditoria() {
     $.post('/auditoria/tabla', {
         pagina: paginaActual,
         por_pagina: registrosPorPagina,
+        estado_confirmacion: estadoConfirmacion,  // Añadimos el estado actual
+        orden_campo: window.sessionRol === 'admin' || window.sessionRol === 'verificador' ? 'fecha_confirmacion_gerencia' : 'fecha_confirmacion_redes',
+        orden_dir: ordenFecha,
         ...filtrosActuales
     }, function (res) {
         if (typeof res === 'string') {

@@ -92,7 +92,7 @@ $(document).ready(function () {
             mostrarAlerta(msg, 'success');
         } else {
             // fallback simple
-            alert(msg);
+            mostrarAlerta(msg, 'error');
         }
         cargarTablaRegistrosAuditoriaAdmin(1);
     });
@@ -133,15 +133,24 @@ $(document).ready(function () {
         });
     }
 });
-// --- Guardar edición de fechas (solo admin) ---
+// --- Guardar edición de fechas (solo admin y vendedor) ---
 function guardarFechaVoucher(id) {
-    const input = document.getElementById(`fecha_redes_${id}`);
-    const fecha = input?.value;
-    if (!fecha) {
-        alert('Por favor, selecciona una fecha.');
+    const inputFecha = document.getElementById(`fecha_redes_${id}`);
+    const inputHora = document.getElementById(`hora_redes_${id}`);
+    const fecha = inputFecha?.value;
+    const hora = inputHora?.value;
+
+    console.log(`Fecha: ${fecha}, Hora: ${hora}`);
+
+    if (!fecha || !hora) {
+        mostrarAlerta('Por favor selecciona una fecha y hora.', 'error');
         return;
     }
-    let mensaje = `¿Deseas guardar la fecha <b>${fecha}</b> para el voucher? Esta acción es irreversible y quedará registrada en auditoría.`;
+    // Combinar fecha y hora
+    const fechaHora = `${fecha} ${hora}`;
+
+    let mensaje = `¿Deseas guardar la fecha y hora <b>${fechaHora}</b> para el voucher? Esta acción es irreversible y quedará registrada en auditoría.`;
+
     mostrarDialogoConfirmacion({
         titulo: 'Confirmar edición de fecha de voucher',
         mensaje: mensaje,
@@ -150,12 +159,18 @@ function guardarFechaVoucher(id) {
             $.ajax({
                 url: '/admin/editar_fecha_voucher',
                 method: 'POST',
-                data: { id: id, fecha: fecha, motivo: motivo },
+                contentType: 'application/json',
+                data: JSON.stringify({ id: id, fecha: fechaHora, motivo: motivo }),
                 success: function (resp) {
-                    if (resp.success) { location.reload(); } else { alert(resp.error || 'Error al guardar'); }
+                    if (resp.success) {
+                        mostrarAlerta('Cambios guardados exitosamente', 'success');
+                        actualizarTablaAuditoria(); // Esta función mantiene el estado del tab actual
+                    } else {
+                        mostrarAlerta(resp.error || 'Error al guardar', 'error');
+                    }
                 },
                 error: function (xhr) {
-                    alert('Error en el servidor: ' + (xhr.responseJSON?.error || xhr.statusText));
+                    mostrarAlerta('Error en el servidor: ' + (xhr.responseJSON?.error || xhr.statusText), 'error');
                 }
             });
         }
@@ -179,7 +194,7 @@ function guardarFechaIngreso(id) {
     const input = document.getElementById(`fecha_ingreso_cuenta_${id}`);
     const fecha = input?.value;
     if (!fecha) {
-        alert('Por favor, selecciona una fecha.');
+        mostrarAlerta('Por favor, selecciona una fecha.', 'error');
         return;
     }
     let mensaje = `¿Deseas guardar la fecha <b>${fecha}</b> para el ingreso de dinero? Esta acción es irreversible y quedará registrada en auditoría.`;
@@ -193,10 +208,20 @@ function guardarFechaIngreso(id) {
                 method: 'POST',
                 data: { id: id, fecha: fecha, motivo: motivo },
                 success: function (resp) {
-                    if (resp.success) { location.reload(); } else { alert(resp.error || 'Error al guardar'); }
+                    if (resp.success) {
+                        mostrarAlerta('Cambios guardados exitosamente', 'success');
+                        // Asegurarse de que actualizarTablaAuditoria existe
+                        if (typeof actualizarTablaAuditoria === 'function') {
+                            actualizarTablaAuditoria();
+                        } else {
+                            cargarPaginaAuditoria(paginaActual, filtrosActuales);
+                        }
+                    } else {
+                        mostrarAlerta(resp.error || 'Error al guardar', 'error');
+                    }
                 },
                 error: function (xhr) {
-                    alert('Error en el servidor: ' + (xhr.responseJSON?.error || xhr.statusText));
+                    mostrarAlerta('Error en el servidor: ' + (xhr.responseJSON?.error || xhr.statusText), 'error');
                 }
             });
         }
@@ -333,8 +358,23 @@ $(document).ready(function () {
                 cerrarModalAgregar();
                 cargar_tabla(tab, 1);
             } else {
-                alert(resp.error || 'Error al agregar');
+                mostrarAlerta(resp.error || 'Error al agregar', 'error');
             }
         }, 'json');
     });
 });
+
+// Alerta visual tipo login (reutilizable)
+function mostrarAlerta(mensaje, tipo = 'success') {
+    // Elimina alertas previas
+    $('.alert-auditoria').remove();
+    let color = tipo === 'success' ? 'bg-green-500' : 'bg-red-500';
+    let html = `<div class="alert-auditoria fixed top-4 left-1/2 transform -translate-x-1/2 z-50 ${color} text-white px-6 py-3 rounded shadow transition-all opacity-0">${mensaje}</div>`;
+    $('body').append(html);
+    let $alert = $('.alert-auditoria');
+    setTimeout(() => $alert.removeClass('opacity-0').addClass('opacity-100'), 50);
+    setTimeout(() => {
+        $alert.removeClass('opacity-100').addClass('opacity-0');
+        setTimeout(() => $alert.remove(), 500);
+    }, 3000);
+}

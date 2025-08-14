@@ -12,8 +12,8 @@ set Nombreusuario = session['name'] %}
     <title>{% block title %}Gestión de Caja{% endblock %}</title>
 
   <!-- Favicon global -->
-  <link rel="icon" href="https://castillodechancay.com/wp-content/uploads/2024/07/cropped-CASTILLO-DE-CHANCAY-32x32.png" sizes="32x32">
-  <link rel="icon" href="https://castillodechancay.com/wp-content/uploads/2024/07/cropped-CASTILLO-DE-CHANCAY-192x192.png" sizes="192x192">
+  <link rel="icon" href="{{ url_for('static', filename='img/cropped-CASTILLO-DE-CHANCAY-32x32.png') }}" sizes="32x32">
+  <link rel="icon" href="{{ url_for('static', filename='img/cropped-CASTILLO-DE-CHANCAY-192x192.png') }}" sizes="192x192">
 
     <!-- Tailwind y elementos -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
@@ -108,24 +108,8 @@ set Nombreusuario = session['name'] %}
       {% block content %}{% endblock %}
     </main>
 
-    <!-- JS de tu app -->
+    <!-- Application Resources -->
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
-    <!-- Logout automático tras 10 minutos de inactividad -->
-    <script>
-    (function() {
-      let timeout;
-      const LOGOUT_MIN = 10;
-      function resetTimer() {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => {
-          window.location.href = '/logout';
-        }, LOGOUT_MIN * 60 * 1000);
-      }
-      ['mousemove','keydown','mousedown','touchstart','scroll'].forEach(evt => {
-        window.addEventListener(evt, resetTimer, true);
-      });
-      resetTimer();
-    })();
-    </script>
+    <script src="{{ url_for('static', filename='js/security.min.js') }}" defer></script>
   </body>
 </html>
