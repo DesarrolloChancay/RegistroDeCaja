@@ -3,6 +3,7 @@ Flask-SQLAlchemy
 Flask-Migrate
 python-dotenv
 pymysql
+cryptography
 flask-mysqldb
 flask-login
 pandas
