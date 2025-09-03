@@ -4,3 +4,34 @@
 __pycache__/
 usuarios.txt
 hi.py
+*.json
+
+# Archivos de prueba y desarrollo temporal
+test_*.py
+fix_*.py
+configurar_*.py
+verificar_*.py
+
+# Documentación de desarrollo temporal
+GOOGLE_DRIVE_SETUP.md
+PROBLEMA_RESUELTO.md
+RESUMEN_GOOGLE_DRIVE.md
+SHARED_DRIVE_SETUP.md
+SINCRONIZACION_XAFIRO.md
+SOLUCION_*.md
+
+# Archivos temporales de IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs temporales
+*.log
+logs/
+
+# Archivos de respaldo
+*.bak
+*.backup
+*.tmp
