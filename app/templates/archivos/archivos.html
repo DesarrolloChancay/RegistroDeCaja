@@ -1,0 +1,748 @@
+{% extends "base.html" %}
+{% block title %}Gestión de Archivos - Google Drive{% endblock %}
+
+{% block content %}
+<div class="bg-[#dfd0a5] rounded-xl shadow p-2 sm:p-6">
+  <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6">
+    <h2 class="text-2xl font-semibold text-gray-800 mb-4 lg:mb-0">
+      📁 Gestión de Archivos
+    </h2>
+    
+    <!-- Controles principales -->
+    <div class="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+      <!-- Subir archivo (solo admin y vendedor) -->
+      {% if sessionname == 'admin' or sessionname == 'vendedor' %}
+      <button 
+        id="btn-subir-archivo" 
+        class="bg-blue-600 text-white px-4 py-2 rounded font-semibold shadow hover:bg-blue-700 transition-colors w-full sm:w-auto"
+      >
+        📤 Subir Archivo
+      </button>
+      {% endif %}
+      
+      <!-- Crear carpeta (solo admin) -->
+      {% if sessionname == 'admin' %}
+      <button 
+        id="btn-crear-carpeta" 
+        class="bg-green-600 text-white px-4 py-2 rounded font-semibold shadow hover:bg-green-700 transition-colors w-full sm:w-auto"
+      >
+        📁 Nueva Carpeta
+      </button>
+      {% endif %}
+      
+      <!-- Actualizar -->
+      <button 
+        id="btn-actualizar" 
+        class="bg-gray-600 text-white px-4 py-2 rounded font-semibold shadow hover:bg-gray-700 transition-colors w-full sm:w-auto"
+      >
+        🔄 Actualizar
+      </button>
+    </div>
+  </div>
+
+  <!-- Navegación (breadcrumb) -->
+  <nav class="flex mb-4" aria-label="Breadcrumb">
+    <ol class="inline-flex items-center space-x-1 md:space-x-3" id="breadcrumb">
+      <!-- Se llena dinámicamente -->
+    </ol>
+  </nav>
+
+  <!-- Estado de carga -->
+  <div id="loading" class="text-center py-8 hidden">
+    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+    <p class="mt-2 text-gray-600">Cargando archivos...</p>
+  </div>
+
+  <!-- Lista de archivos y carpetas -->
+  <div id="archivo-lista" class="bg-white rounded-lg shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Nombre
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Tipo
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Tamaño
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Fecha
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Acciones
+            </th>
+          </tr>
+        </thead>
+        <tbody id="archivo-tbody" class="bg-white divide-y divide-gray-200">
+          <!-- Se llena dinámicamente -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Mensaje cuando no hay archivos -->
+  <div id="no-archivos" class="text-center py-8 hidden">
+    <div class="text-gray-400 text-6xl mb-4">📂</div>
+    <p class="text-gray-600">No hay archivos en esta carpeta</p>
+  </div>
+</div>
+
+<!-- Modal para subir archivo -->
+<div id="modal-subir-archivo" class="fixed inset-0 z-50 hidden">
+  <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"></div>
+  <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+    <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+      <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+        <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+          <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Subir Archivo</h3>
+          <form id="form-subir-archivo" enctype="multipart/form-data">
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Seleccionar archivo
+              </label>
+              <input 
+                type="file" 
+                id="archivo-input" 
+                name="archivo" 
+                required 
+                class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              >
+              <p class="mt-1 text-xs text-gray-500">
+                Máximo 50MB. Tipos permitidos: PDF, DOC, XLS, PPT, ZIP, IMG
+              </p>
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Descripción (opcional)
+              </label>
+              <textarea 
+                id="descripcion-input" 
+                name="descripcion" 
+                rows="3" 
+                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                placeholder="Descripción del archivo..."
+              ></textarea>
+            </div>
+            <div class="mb-4">
+              <label class="flex items-center">
+                <input type="checkbox" id="timestamp-checkbox" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <span class="ml-2 text-sm text-gray-700">Agregar timestamp al nombre</span>
+              </label>
+            </div>
+          </form>
+        </div>
+        <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+          <button type="button" id="confirmar-subir" class="inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:ml-3 sm:w-auto">
+            Subir
+          </button>
+          <button type="button" id="cancelar-subir" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para crear carpeta -->
+<div id="modal-crear-carpeta" class="fixed inset-0 z-50 hidden">
+  <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"></div>
+  <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+    <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+      <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+        <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+          <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Nueva Carpeta</h3>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Nombre de la carpeta
+            </label>
+            <input 
+              type="text" 
+              id="nombre-carpeta-input" 
+              required 
+              maxlength="100"
+              class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              placeholder="Nombre de la carpeta..."
+            >
+          </div>
+        </div>
+        <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+          <button type="button" id="confirmar-crear-carpeta" class="inline-flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 sm:ml-3 sm:w-auto">
+            Crear
+          </button>
+          <button type="button" id="cancelar-crear-carpeta" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de progreso -->
+<div id="modal-progreso" class="fixed inset-0 z-50 hidden">
+  <div class="fixed inset-0 bg-black bg-opacity-50"></div>
+  <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+    <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+      <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+        <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+          <div class="text-center">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+            <h3 id="progreso-titulo" class="text-lg font-medium leading-6 text-gray-900 mb-2">Procesando...</h3>
+            <p id="progreso-mensaje" class="text-sm text-gray-600">Por favor espera...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Variables globales
+let currentPath = '/';
+let currentUser = '{{ current_user.rol.nombre if current_user.is_authenticated else "guest" }}';
+
+// Inicializar cuando se carga la página
+document.addEventListener('DOMContentLoaded', function() {
+  cargarArchivos();
+  
+  // Event listeners - Navegación segura sin folder_ids
+  document.getElementById('btn-actualizar')?.addEventListener('click', function(e) {
+    e.preventDefault();
+    cargarArchivos(currentPath);
+  });
+  document.getElementById('btn-subir-archivo')?.addEventListener('click', function(e) {
+    e.preventDefault();
+    abrirModalSubir();
+  });
+  document.getElementById('btn-crear-carpeta')?.addEventListener('click', function(e) {
+    e.preventDefault();
+    abrirModalCrearCarpeta();
+  });
+  
+  // Modales
+  document.getElementById('cancelar-subir')?.addEventListener('click', cerrarModalSubir);
+  document.getElementById('cancelar-crear-carpeta')?.addEventListener('click', cerrarModalCrearCarpeta);
+  document.getElementById('confirmar-subir')?.addEventListener('click', subirArchivo);
+  document.getElementById('confirmar-crear-carpeta')?.addEventListener('click', crearCarpeta);
+});
+
+// Funciones de modal
+function mostrarModal(modalId) {
+  document.getElementById(modalId).classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function ocultarModal(modalId) {
+  document.getElementById(modalId).classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+function abrirModalSubir() {
+    console.log('Abriendo modal de subir archivo');
+  mostrarModal('modal-subir-archivo');
+}
+
+function cerrarModalSubir() {
+  ocultarModal('modal-subir-archivo');
+}
+
+function abrirModalCrearCarpeta() {
+  mostrarModal('modal-crear-carpeta');
+}
+
+function cerrarModalCrearCarpeta() {
+  ocultarModal('modal-crear-carpeta');
+  document.getElementById('nombre-carpeta-input').value = '';
+}
+
+function mostrarProgreso(titulo, mensaje) {
+  document.getElementById('progreso-titulo').textContent = titulo;
+  document.getElementById('progreso-mensaje').textContent = mensaje;
+  mostrarModal('modal-progreso');
+}
+
+function ocultarProgreso() {
+  ocultarModal('modal-progreso');
+  document.getElementById('form-subir-archivo').reset();
+}
+
+// Cargar archivos con navegación segura
+async function cargarArchivos(path = '/') {
+  try {
+    mostrarCargando();
+    currentPath = path;
+    
+    const params = new URLSearchParams();
+    params.append('path', path);
+    
+    const response = await fetch(`/archivos/listar?${params}`);
+    const data = await response.json();
+
+    console.log('Respuesta recibida:', data);
+    
+    if (data.success) {
+      mostrarArchivos(data);
+      mostrarBreadcrumb(data.breadcrumb);
+      currentPath = data.virtual_path;
+    } else {
+      mostrarError('Error cargando archivos: ' + data.error);
+    }
+  } catch (error) {
+    console.error('Error en cargarArchivos:', error);
+    mostrarError('Error de conexión: ' + error.message);
+  } finally {
+    ocultarCargando();
+  }
+}
+
+function mostrarCargando() {
+  document.getElementById('loading').classList.remove('hidden');
+  document.getElementById('archivo-lista').classList.add('hidden');
+  document.getElementById('no-archivos').classList.add('hidden');
+}
+
+function ocultarCargando() {
+  document.getElementById('loading').classList.add('hidden');
+  document.getElementById('archivo-lista').classList.remove('hidden');
+}
+
+function mostrarArchivos(data) {
+  const tbody = document.getElementById('archivo-tbody');
+  tbody.innerHTML = '';
+  
+  const totalItems = data.carpetas.length + data.archivos.length;
+  
+  if (totalItems === 0) {
+    document.getElementById('archivo-lista').classList.add('hidden');
+    document.getElementById('no-archivos').classList.remove('hidden');
+    return;
+  }
+  
+  // Mostrar carpetas primero
+  data.carpetas.forEach(carpeta => {
+    const row = crearFilaCarpeta(carpeta);
+    tbody.appendChild(row);
+  });
+  
+  // Mostrar archivos
+  data.archivos.forEach(archivo => {
+    const row = crearFilaArchivo(archivo);
+    tbody.appendChild(row);
+  });
+  
+  // Configurar event listeners para los botones de acción
+  configurarEventListenersAcciones();
+}
+
+function configurarEventListenersAcciones() {
+  // Botones para abrir carpetas usando rutas virtuales
+  document.querySelectorAll('.btn-abrir-carpeta').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const virtualPath = this.getAttribute('data-virtual-path');
+      cargarArchivos(virtualPath);
+    });
+  });
+  
+  // Botones para descargar archivos
+  document.querySelectorAll('.btn-descargar').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const fileId = this.getAttribute('data-file-id');
+      descargarArchivo(fileId);
+    });
+  });
+  
+  // Botones para renombrar
+  document.querySelectorAll('.btn-renombrar').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const itemId = this.getAttribute('data-item-id');
+      const itemName = this.getAttribute('data-item-name');
+      renombrarItem(itemId, itemName);
+    });
+  });
+  
+  // Botones para eliminar
+  document.querySelectorAll('.btn-eliminar').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const itemId = this.getAttribute('data-item-id');
+      const itemName = this.getAttribute('data-item-name');
+      const isFolder = this.getAttribute('data-is-folder') === 'true';
+      eliminarItem(itemId, itemName, isFolder);
+    });
+  });
+}
+
+function crearFilaCarpeta(carpeta) {
+  const row = document.createElement('tr');
+  row.className = 'hover:bg-gray-50 cursor-pointer';
+  
+  // Usar addEventListener para navegar por rutas virtuales
+  row.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    cargarArchivos(carpeta.virtual_path);
+  });
+  
+  row.innerHTML = `
+    <td class="px-6 py-4 whitespace-nowrap">
+      <div class="flex items-center">
+        <span class="text-2xl mr-3">📁</span>
+        <span class="text-sm font-medium text-gray-900">${carpeta.name}</span>
+      </div>
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Carpeta</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">-</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatearFecha(carpeta.createdTime)}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+      ${crearAccionesCarpeta(carpeta)}
+    </td>
+  `;
+  
+  return row;
+}
+
+function crearFilaArchivo(archivo) {
+  const row = document.createElement('tr');
+  row.className = 'hover:bg-gray-50';
+  
+  row.innerHTML = `
+    <td class="px-6 py-4 whitespace-nowrap">
+      <div class="flex items-center">
+        <span class="text-2xl mr-3">${getIconoArchivo(archivo.mimeType)}</span>
+        <span class="text-sm font-medium text-gray-900">${archivo.name}</span>
+      </div>
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${getTipoArchivo(archivo.mimeType)}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatearTamano(archivo.size)}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatearFecha(archivo.modifiedTime)}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+      ${crearAccionesArchivo(archivo)}
+    </td>
+  `;
+  
+  return row;
+}
+
+function crearAccionesCarpeta(carpeta) {
+  const abrir = `<button class="btn-abrir-carpeta text-blue-600 hover:text-blue-900 mr-3" data-virtual-path="${carpeta.virtual_path}">Abrir</button>`;
+  
+  let acciones = abrir;
+  
+  if (currentUser === 'admin') {
+    acciones += `
+      <button class="btn-renombrar text-yellow-600 hover:text-yellow-900 mr-3" data-item-id="${carpeta.id}" data-item-name="${carpeta.name}">Renombrar</button>
+      <button class="btn-eliminar text-red-600 hover:text-red-900" data-item-id="${carpeta.id}" data-item-name="${carpeta.name}" data-is-folder="true">Eliminar</button>
+    `;
+  }
+  
+  return acciones;
+}
+
+function crearAccionesArchivo(archivo) {
+  let acciones = `<button class="btn-descargar text-green-600 hover:text-green-900 mr-3" data-file-id="${archivo.id}">Descargar</button>`;
+  
+  if (currentUser === 'admin' || currentUser === 'vendedor') {
+    acciones += `
+      <button class="btn-renombrar text-yellow-600 hover:text-yellow-900 mr-3" data-item-id="${archivo.id}" data-item-name="${archivo.name}">Renombrar</button>
+      <button class="btn-eliminar text-red-600 hover:text-red-900" data-item-id="${archivo.id}" data-item-name="${archivo.name}" data-is-folder="false">Eliminar</button>
+    `;
+  }
+  
+  return acciones;
+}
+
+// Funciones auxiliares
+function getIconoArchivo(mimeType) {
+  if (mimeType.includes('pdf')) return '📄';
+  if (mimeType.includes('image')) return '🖼️';
+  if (mimeType.includes('video')) return '🎥';
+  if (mimeType.includes('audio')) return '🎵';
+  if (mimeType.includes('zip') || mimeType.includes('rar')) return '📦';
+  if (mimeType.includes('word') || mimeType.includes('document')) return '📝';
+  if (mimeType.includes('sheet') || mimeType.includes('excel')) return '📊';
+  if (mimeType.includes('presentation') || mimeType.includes('powerpoint')) return '📈';
+  return '📄';
+}
+
+function getTipoArchivo(mimeType) {
+  if (mimeType.includes('pdf')) return 'PDF';
+  if (mimeType.includes('image')) return 'Imagen';
+  if (mimeType.includes('video')) return 'Video';
+  if (mimeType.includes('audio')) return 'Audio';
+  if (mimeType.includes('zip')) return 'ZIP';
+  if (mimeType.includes('word')) return 'Word';
+  if (mimeType.includes('sheet')) return 'Excel';
+  if (mimeType.includes('presentation')) return 'PowerPoint';
+  return 'Archivo';
+}
+
+function formatearTamano(bytes) {
+  if (!bytes) return '-';
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+}
+
+function formatearFecha(dateString) {
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('es-ES', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+function mostrarBreadcrumb(breadcrumb) {
+  const breadcrumbContainer = document.getElementById('breadcrumb');
+  breadcrumbContainer.innerHTML = '';
+  
+  breadcrumb.forEach((item, index) => {
+    const li = document.createElement('li');
+    li.className = 'inline-flex items-center';
+    
+    if (index > 0) {
+      li.innerHTML += `
+        <svg class="w-3 h-3 text-gray-400 mx-1" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+        </svg>
+      `;
+    }
+    
+    if (item.is_current) {
+      li.innerHTML += `<span class="text-gray-500">${item.name}</span>`;
+    } else {
+      const button = document.createElement('button');
+      button.className = 'text-blue-600 hover:text-blue-800';
+      button.textContent = item.name;
+      button.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        cargarArchivos(item.path);
+      });
+      li.appendChild(button);
+    }
+    
+    breadcrumbContainer.appendChild(li);
+  });
+}
+
+// Subir archivo
+async function subirArchivo() {
+    console.log('Subiendo archivo...');
+  try {
+    const archivoInput = document.getElementById('archivo-input');
+    const descripcionInput = document.getElementById('descripcion-input');
+    const timestampCheckbox = document.getElementById('timestamp-checkbox');
+    
+    if (!archivoInput.files[0]) {
+      alert('Por favor selecciona un archivo');
+      return;
+    }
+
+    cerrarModalSubir();
+    mostrarProgreso('Subiendo archivo', 'Por favor espera mientras se sube el archivo...');
+
+    const formData = new FormData();
+    formData.append('archivo', archivoInput.files[0]);
+    formData.append('descripcion', descripcionInput.value);
+    formData.append('agregar_timestamp', timestampCheckbox.checked ? 'true' : 'false');
+
+    const response = await fetch('/archivos/subir', {
+      method: 'POST',
+      body: formData
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      // Mostrar mensaje mejorado con información sobre el delay
+      const message = data.message || 'Archivo subido correctamente';
+      const delayNotice = data.info?.delay_notice || '';
+      
+      if (delayNotice) {
+        mostrarExitoConInfo('¡Archivo subido exitosamente!', 
+          message + '\n\n💡 ' + delayNotice + '\n\nActualizando lista de archivos...');
+      } else {
+        mostrarExito(message);
+      }
+      
+      // Recargar archivos inmediatamente
+      cargarArchivos(currentPath);
+      
+      // Si tenemos información de verificación, programar una verificación adicional
+      if (data.info?.verification_available && data.archivo?.id) {
+        setTimeout(() => {
+          verificarArchivoRecienSubido(data.archivo.id, data.archivo.name);
+        }, 5000); // Verificar después de 5 segundos
+      }
+      
+    } else {
+      mostrarError('Error subiendo archivo: ' + data.error);
+    }
+  } catch (error) {
+    mostrarError('Error de conexión: ' + error.message);
+  } finally {
+    ocultarProgreso();
+  }
+}
+
+// Crear carpeta
+async function crearCarpeta() {
+  try {
+    const nombreInput = document.getElementById('nombre-carpeta-input');
+    const nombre = nombreInput.value.trim();
+    
+    if (!nombre) {
+      alert('Por favor ingresa un nombre para la carpeta');
+      return;
+    }
+    
+    cerrarModalCrearCarpeta();
+    mostrarProgreso('Creando carpeta', 'Por favor espera...');
+    
+    const response = await fetch('/archivos/crear_carpeta', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nombre: nombre
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      mostrarExito('Carpeta creada correctamente');
+      cargarArchivos(currentPath);
+    } else {
+      mostrarError('Error creando carpeta: ' + data.error);
+    }
+  } catch (error) {
+    mostrarError('Error de conexión: ' + error.message);
+  } finally {
+    ocultarProgreso();
+  }
+}
+
+// Descargar archivo
+function descargarArchivo(fileId) {
+  window.open(`/archivos/descargar/${fileId}`, '_blank');
+}
+
+// Renombrar item
+async function renombrarItem(fileId, nombreActual) {
+  const nuevoNombre = prompt('Nuevo nombre:', nombreActual);
+  if (!nuevoNombre || nuevoNombre === nombreActual) return;
+  
+  try {
+    mostrarProgreso('Renombrando', 'Por favor espera...');
+    
+    const response = await fetch('/archivos/renombrar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        file_id: fileId,
+        nuevo_nombre: nuevoNombre
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      mostrarExito('Renombrado correctamente');
+      cargarArchivos(currentPath);
+    } else {
+      mostrarError('Error renombrando: ' + data.error);
+    }
+  } catch (error) {
+    mostrarError('Error de conexión: ' + error.message);
+  } finally {
+    ocultarProgreso();
+  }
+}
+
+// Eliminar item
+async function eliminarItem(fileId, nombre, esCarpeta) {
+  const tipo = esCarpeta ? 'carpeta' : 'archivo';
+  if (!confirm(`¿Estás seguro de eliminar ${tipo} "${nombre}"?`)) return;
+  
+  try {
+    mostrarProgreso('Eliminando', `Eliminando ${tipo}...`);
+    
+    const response = await fetch('/archivos/eliminar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file_id: fileId })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      mostrarExito(`${tipo.charAt(0).toUpperCase() + tipo.slice(1)} eliminado correctamente`);
+      cargarArchivos(currentPath);
+    } else {
+      mostrarError(`Error eliminando ${tipo}: ` + data.error);
+    }
+  } catch (error) {
+    mostrarError('Error de conexión: ' + error.message);
+  } finally {
+    ocultarProgreso();
+  }
+}
+
+// Mostrar mensajes
+function mostrarExito(mensaje) {
+  // Implementar sistema de notificaciones
+  alert('✅ ' + mensaje);
+}
+
+function mostrarExitoConInfo(titulo, mensaje) {
+  // Mostrar alerta con información detallada
+  alert('✅ ' + titulo + '\n\n' + mensaje);
+}
+
+function mostrarError(mensaje) {
+  // Implementar sistema de notificaciones
+  alert('❌ ' + mensaje);
+}
+
+// Verificar archivo recién subido
+async function verificarArchivoRecienSubido(fileId, fileName) {
+  try {
+    console.log(`🔍 Verificando archivo recién subido: ${fileName} (${fileId})`);
+    
+    const response = await fetch(`/archivos/verificar/${fileId}`);
+    const data = await response.json();
+    
+    if (data.success && data.exists) {
+      console.log(`✅ Archivo verificado: ${fileName} está disponible en Google Drive`);
+      // Opcionalmente recargar la lista para asegurar que aparezca
+      cargarArchivos(currentPath);
+    } else if (data.success && !data.exists) {
+      console.log(`⏳ Archivo ${fileName} aún se está propagando en Google Drive`);
+      // Intentar verificar nuevamente después de más tiempo
+      setTimeout(() => {
+        verificarArchivoRecienSubido(fileId, fileName);
+      }, 10000); // Verificar nuevamente en 10 segundos
+    } else {
+      console.log(`❌ Error verificando archivo: ${data.error}`);
+    }
+  } catch (error) {
+    console.log(`❌ Error en verificación automática: ${error.message}`);
+  }
+}
+</script>
+{% endblock %}
