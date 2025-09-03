@@ -13,3 +13,6 @@ class Config:
         f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    
+    # Google Drive Configuration
+    ROOT_FOLDER_ID = str(os.getenv('GOOGLE_DRIVE_FOLDER_ID'))  # Shared Drive ID

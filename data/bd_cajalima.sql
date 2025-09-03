@@ -52,7 +52,7 @@ CREATE TABLE usuarios (
 -- Tabla principal de registros de ventas
 CREATE TABLE registros_ventas (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    id_xafiro INT UNIQUE, -- ID único de Xafiro
+    id_xafiro VARCHAR(100), -- ID único de Xafiro
     recibo VARCHAR(100) UNIQUE,
     medio_pago_id INT,
     entidad_banco_id INT,
@@ -119,7 +119,7 @@ INSERT INTO empresas (nombre) VALUES
 -- Insertar áreas
 INSERT INTO areas (nombre) VALUES
 ('HOTEL'),
-('GRUPOS COORPORATIVOS'),
+('GRUPOS CORPORATIVOS'),
 ('COMERCIAL');
 
 -- Insertar entidades bancarias
@@ -127,7 +127,8 @@ INSERT INTO entidades_banco (nombre) VALUES
 ('BCP'),
 ('BBVA'),
 ('Scotiabank'),
-('Interbank');
+('Interbank'),
+('PAGO LINK');
 
 -- Insertar medios de pago
 INSERT INTO medios_pago (nombre) VALUES
@@ -135,7 +136,7 @@ INSERT INTO medios_pago (nombre) VALUES
 ('POS - YAPE'),
 ('POS - TARJETA'),
 ('POS - PLIN'),
-('PAGOLINK'),
+('PAGO LINK'),
 ('DEPOSITO'),
 ('TRANSFERENCIA'),
 ('OTROS');
@@ -156,53 +157,6 @@ INSERT INTO usuarios (id, nombre, correo, contrasena, rol_id) VALUES
 ('verif02', 'Yolanda Pacheco', 'gerenciacastillochancay@hotmail.com', '$2b$12$k2yfxjtEGCqcZ3mriHfeUe7lLSHbfS6mOQRkDCwyC0khQ3uhd/G9.', 3),
 ('cont01', 'Jhon Doe', 'jhondoe@castillodechancay.com', '$2b$12$/98in5H5an.yCAeYx2YiiOd65lQO6YBGDMDWweuo5KPK/U/Z3SKiO', 4)
 ON DUPLICATE KEY UPDATE nombre=VALUES(nombre);
-
--- Insertar registros de ventas (ejemplos)
-INSERT INTO registros_ventas (
-    id_xafiro,
-    recibo,
-    medio_pago_id,
-    entidad_banco_id,
-    area_id,
-    centro_costo_id,
-    detalle,
-    empresa_id,
-    monto,
-    confirmado,
-    fecha_registro_pago,
-    fecha_comprobante,
-    fecha_ingreso_cuenta,
-    fecha_confirmacion_redes,
-    fecha_confirmacion_gerencia,
-    confirmado_redes,
-    vendedor_id,
-    confirmador_cuenta,
-    confirmador_voucher
-) VALUES
-(0001, 'REC001', 7, 1, 1, 1, 'Venta de habitación Deluxe', 1, 450.00, 0, '2025-08-01', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-(0002, 'REC002', 2, 3, 3, 3, 'Venta de servicio de consultoría', 1, 150.50, 0, '2025-08-02', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-(0003, 'REC003', 3, 2, 1, 1, 'Venta de 5 noches en suite', 1, 1200.75, 0, '2025-08-03', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-(0004, 'REC004', 1, 2, 2, 2, 'Venta a grupo corporativo A', 1, 3500.00, 0, '2025-08-04', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-(0005, 'REC005', 6, 3, 1, 1, 'Depósito por reserva de evento', 1, 800.00, 0, '2025-08-05', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-(0006, 'REC006', 4, 4, 3, 3, 'Venta de software', 1, 250.00, 0, '2025-08-06', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-(0007, 'REC007', 7, 4, 1, 1, 'Transferencia por servicio de spa', 1, 180.25, 0, '2025-08-07', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-(0008, 'REC008', 3, 1, 2, 2, 'Servicios para conferencia', 1, 5500.00, 0, '2025-08-08', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-(0009, 'REC009', 2, 2, 1, 1, 'Venta de productos de la tienda', 1, 75.00, 0, '2025-08-09', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-(0010, 'REC010', 5, 3, 3, 3, 'Pago de factura pendiente', 1, 320.00, 0, '2025-08-10', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-(0011, 'REC011', 1, 1, 1, 1, 'Pago por servicios de lavandería', 1, 45.00, 0, '2025-08-11', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-(0012, 'REC012', 6, 2, 2, 2, 'Depósito de cliente B', 1, 950.00, 0, '2025-08-12', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-(0013, 'REC013', 7, 3, 3, 3, 'Pago por servicios de diseño web', 1, 600.00, 0, '2025-08-13', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-(0014, 'REC014', 3, 4, 1, 1, 'Venta de desayuno buffet', 1, 120.00, 0, '2025-08-14', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-(0015, 'REC015', 8, 1, 2, 2, 'Otros ingresos', 1, 25.00, 0, '2025-08-15', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-(0016, 'REC016', 5, 3, 3, 3, 'Pago de factura pendiente', 1, 320.00, 0, '2025-08-10', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-(0017, 'REC017', 1, 1, 1, 1, 'Pago por servicios de lavandería', 1, 45.00, 0, '2025-08-11', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-(0018, 'REC018', 6, 2, 2, 2, 'Depósito de cliente B', 1, 950.00, 0, '2025-08-12', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-(0019, 'REC019', 7, 3, 3, 3, 'Pago por servicios de diseño web', 1, 600.00, 0, '2025-08-13', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-(0020, 'REC020', 3, 4, 1, 1, 'Venta de desayuno buffet', 1, 120.00, 0, '2025-08-14', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL),
-(0021, 'REC021', 8, 1, 2, 2, 'Otros ingresos', 1, 25.00, 0, '2025-08-15', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL);
-
-
-
 
 -- Variables de sesión para el contexto de auditoría, mira esto lo agrego para setear estas variables en un inicio
 SET @current_user_id = NULL;

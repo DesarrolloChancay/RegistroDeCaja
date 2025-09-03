@@ -31,7 +31,7 @@
           {% endif %}
           {% if sessionname == 'vendedor' or sessionname == 'admin' %}
             <input type="time" class="border border-gray-300 rounded px-3 py-2 w-32" id="hora_redes_{{ r.id }}"
-              value="{{ r.fecha_comprobante.strftime('%H:%M') if r.fecha_comprobante else '' }}"
+              value="{{ r.fecha_comprobante.strftime('%I:%M') if r.fecha_comprobante else '' }}"
             />
           {% endif %}
         </div>

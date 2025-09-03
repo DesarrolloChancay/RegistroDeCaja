@@ -1,0 +1,15 @@
+# API Dependencies
+fastapi
+uvicorn[standard]
+pydantic
+
+# Web Scraping Dependencies  
+requests
+beautifulsoup4
+lxml
+
+# Data Processing
+pandas
+
+# Environment Variables
+python-dotenv

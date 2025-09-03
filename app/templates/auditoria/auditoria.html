@@ -91,8 +91,19 @@
         Borrar filtros
       </button>
     </div>
+    {% if sessionname == 'admin' or sessionname == 'vendedor' %}
+      <button
+        id="btn-sincronizar"
+        class="bg-blue-600 text-white px-4 py-1 sm:px-6 sm:py-2 rounded font-semibold shadow hover:bg-blue-700 cursor-pointer w-full sm:w-auto"
+        type="button"
+        title="Sincronizar registros desde Xafiro"
+      >
+        🔄 Sincronizar registros
+      </button>
+      {% endif %}
     {% if sessionname == 'admin' or sessionname == 'verificador' or sessionname == 'contabilidad' %}
     <div class="flex flex-row gap-2 w-full sm:w-auto justify-end">
+      
       <button
         id="btn-exportar"
         class="bg-[#b07c40] text-white px-4 py-1 sm:px-6 sm:py-2 rounded font-semibold shadow hover:opacity-90 cursor-pointer w-full sm:w-auto"
@@ -348,6 +359,105 @@
   </dialog>
 </el-dialog>
 
+<!-- Modal de confirmación para sincronización -->
+<div id="modal-confirmar-sincronizacion" class="fixed inset-0 z-50 hidden">
+  <div class="fixed inset-0 bg-gray-900/70"></div>
+  <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+    <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+      <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+        <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+          <div class="sm:flex sm:items-start">
+            <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+              <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+              </svg>
+            </div>
+            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+              <h3 class="text-base font-semibold leading-6 text-gray-900">Sincronizar registros</h3>
+              <div class="mt-2">
+                <p class="text-sm text-gray-500">
+                  ¿Está seguro de sincronizar los registros desde Xafiro? Esta operación puede tomar varios minutos y extraerá todos los registros disponibles del sistema externo.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+          <button type="button" id="confirmar-sincronizacion" class="inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:ml-3 sm:w-auto">
+            Sincronizar
+          </button>
+          <button type="button" id="cancelar-sincronizacion" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de proceso de sincronización -->
+<div id="modal-sincronizando" class="fixed inset-0 z-50 hidden">
+  <div class="fixed inset-0 bg-gray-900/70"></div>
+  <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+    <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+      <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+        <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+          <div class="sm:flex sm:items-start">
+            <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+              <svg class="animate-spin h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </div>
+            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+              <h3 class="text-base font-semibold leading-6 text-gray-900">Sincronizando registros</h3>
+              <div class="mt-2">
+                <p class="text-sm text-gray-500" id="mensaje-progreso">
+                  Extrayendo registros desde Xafiro, por favor espere...
+                </p>
+                <div class="mt-3">
+                  <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="bg-blue-600 h-2 rounded-full animate-pulse" style="width: 100%"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de resultado de sincronización -->
+<div id="modal-resultado" class="fixed inset-0 z-50 hidden">
+  <div class="fixed inset-0 bg-gray-900/70"></div>
+  <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+    <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+      <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+        <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+          <div class="sm:flex sm:items-start">
+            <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full sm:mx-0 sm:h-10 sm:w-10" id="icono-resultado">
+              <!-- Icono se actualiza dinámicamente -->
+            </div>
+            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+              <h3 class="text-base font-semibold leading-6 text-gray-900" id="titulo-resultado">Resultado</h3>
+              <div class="mt-2" id="contenido-resultado">
+                <!-- Contenido se actualiza dinámicamente -->
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+          <button type="button" id="cerrar-resultado" class="inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:ml-3 sm:w-auto">
+            Aceptar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% if sessionname == 'admin' %}
 <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
 {% endif %}
@@ -359,6 +469,145 @@
         if (data.min_fecha) document.getElementById('fecha_desde').value = data.min_fecha;
         if (data.max_fecha) document.getElementById('fecha_hasta').value = data.max_fecha;
       });
+
+    // Elementos del modal
+    const modalConfirmar = document.getElementById('modal-confirmar-sincronizacion');
+    const modalSincronizando = document.getElementById('modal-sincronizando');
+    const modalResultado = document.getElementById('modal-resultado');
+    const btnSincronizar = document.getElementById('btn-sincronizar');
+    
+    // Funciones para manejar modales
+    function mostrarModal(modal) {
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+    
+    function ocultarModal(modal) {
+      modal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+    
+    function mostrarResultado(esExito, titulo, mensaje, detalles = null) {
+      const iconoResultado = document.getElementById('icono-resultado');
+      const tituloResultado = document.getElementById('titulo-resultado');
+      const contenidoResultado = document.getElementById('contenido-resultado');
+      
+      if (esExito) {
+        iconoResultado.innerHTML = `
+          <div class="bg-green-100 rounded-full p-2">
+            <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+            </svg>
+          </div>`;
+        iconoResultado.className = 'mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-green-100 sm:mx-0 sm:h-10 sm:w-10';
+      } else {
+        iconoResultado.innerHTML = `
+          <div class="bg-red-100 rounded-full p-2">
+            <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+            </svg>
+          </div>`;
+        iconoResultado.className = 'mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10';
+      }
+      
+      tituloResultado.textContent = titulo;
+      
+      let contenidoHTML = `<p class="text-sm text-gray-700">${mensaje}</p>`;
+      /*if (detalles) {
+        contenidoHTML += `<div class="mt-3 p-3 bg-gray-50 rounded-md"><pre class="text-xs text-gray-600 whitespace-pre-wrap">${detalles}</pre></div>`;
+      }*/
+      contenidoResultado.innerHTML = contenidoHTML;
+      
+      mostrarModal(modalResultado);
+    }
+
+    // Event listeners para sincronización
+    if (btnSincronizar) {
+      btnSincronizar.addEventListener('click', function() {
+        mostrarModal(modalConfirmar);
+      });
+    }
+    
+    document.getElementById('cancelar-sincronizacion').addEventListener('click', function() {
+      ocultarModal(modalConfirmar);
+    });
+    
+    document.getElementById('confirmar-sincronizacion').addEventListener('click', function() {
+      ocultarModal(modalConfirmar);
+      
+      // Mostrar modal de progreso
+      mostrarModal(modalSincronizando);
+      
+      // Deshabilitar botón principal
+      btnSincronizar.disabled = true;
+      const originalText = btnSincronizar.innerHTML;
+      btnSincronizar.innerHTML = '🔄 Sincronizando...';
+      btnSincronizar.classList.add('opacity-50', 'cursor-not-allowed');
+
+      // Realizar petición de sincronización
+      fetch('/auditoria/sincronizar_registros', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({})
+      })
+      .then(response => response.json())
+      .then(data => {
+        ocultarModal(modalSincronizando);
+        
+        if (data.success) {
+          // Construir mensaje de éxito
+          let mensaje = data.message;
+          let detalles = `📊 Registros extraídos: ${data.total_extraidos}\n➕ Registros insertados: ${data.total_insertados}`;
+          
+          if (data.errores && data.errores.length > 0) {
+            detalles += `\n\n⚠️ Errores encontrados: ${data.errores.length}\n${data.errores.join('\n')}`;
+          }
+          
+          mostrarResultado(true, 'Sincronización exitosa', mensaje, detalles);
+          
+          // Recargar la tabla de auditoría después de cerrar el modal
+          setTimeout(() => {
+            if (typeof actualizarTablaAuditoria === 'function') {
+              actualizarTablaAuditoria();
+            } else if (typeof cargarPaginaAuditoria === 'function') {
+              cargarPaginaAuditoria(1, {});
+            } else {
+              window.location.reload();
+            }
+          }, 1000);
+        } else {
+          // Mostrar error
+          let detalles = data.errores && data.errores.length > 0 ? data.errores.join('\n') : null;
+          mostrarResultado(false, 'Error en sincronización', data.message, detalles);
+        }
+      })
+      .catch(error => {
+        ocultarModal(modalSincronizando);
+        console.error('Error:', error);
+        mostrarResultado(false, 'Error de conexión', 'Error de conexión durante la sincronización. Por favor, inténtelo nuevamente.', error.toString());
+      })
+      .finally(() => {
+        // Restaurar botón
+        btnSincronizar.disabled = false;
+        btnSincronizar.innerHTML = originalText;
+        btnSincronizar.classList.remove('opacity-50', 'cursor-not-allowed');
+      });
+    });
+    
+    document.getElementById('cerrar-resultado').addEventListener('click', function() {
+      ocultarModal(modalResultado);
+    });
+    
+    // Cerrar modales al hacer clic fuera de ellos
+    [modalConfirmar, modalResultado].forEach(modal => {
+      modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+          ocultarModal(modal);
+        }
+      });
+    });
   });
 </script>
 {% endblock %} {% endif %}

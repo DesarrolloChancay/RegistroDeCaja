@@ -7,6 +7,7 @@ from flask import Blueprint
 from app.models.Usuario import Usuario
 from app.routes import auditoria_bp
 from app.routes.admin_routes import admin_bp
+from app.routes.archivos_routes import archivos_bp
 from app.controllers.auditoria_controller import create_titulo
 from flask import session
 from flask import make_response
@@ -104,6 +105,7 @@ def create_app():
     app.register_blueprint(auth_bp)
     app.register_blueprint(auditoria_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(archivos_bp)
 
     # Handler global para 404
     @app.errorhandler(404)

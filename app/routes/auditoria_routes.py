@@ -146,3 +146,10 @@ def confirmar_redes_masivo_route():
 @login_required
 def confirmar_gerencia_masivo_route():
     return confirmar_gerencia_masivo()
+
+# Sincronización de registros desde Xafiro
+@auditoria_bp.route('/auditoria/sincronizar_registros', methods=['POST'])
+@login_required
+def sincronizar_registros_route():
+    from app.controllers.auditoria_controller import sincronizar_registros_xafiro
+    return sincronizar_registros_xafiro()

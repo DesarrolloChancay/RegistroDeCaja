@@ -10,3 +10,9 @@ pandas
 openpyxl
 xlsxwriter
 bcrypt
+requests
+beautifulsoup4
+lxml
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib

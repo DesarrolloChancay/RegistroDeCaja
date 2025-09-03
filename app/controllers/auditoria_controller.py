@@ -276,3 +276,45 @@ def confirmar_gerencia_masivo():
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
+
+def sincronizar_registros_xafiro():
+    """
+    Sincroniza registros desde Xafiro utilizando el servicio de sincronización
+    """
+    from app.services.sincronizacion_service import SincronizacionService
+    import logging
+    
+    # Configurar logging para esta función
+    logger = logging.getLogger(__name__)
+    
+    # Verificar permisos (solo admin y vendedor)
+    if not hasattr(current_user, 'rol') or current_user.rol.nombre not in ['admin', 'vendedor']:
+        logger.warning(f"Usuario {current_user.id} intentó sincronizar sin permisos")
+        return jsonify({'success': False, 'error': 'No autorizado'}), 403
+    
+    try:
+        logger.info(f"Usuario {current_user.id} ({current_user.rol.nombre}) inició sincronización")
+        
+        # Obtener fecha del request o usar ayer por defecto
+        data = request.get_json() if request.is_json else {}
+        fecha = data.get('fecha') if data else None
+        
+        # Ejecutar sincronización
+        resultado = SincronizacionService.sincronizar_registros(fecha)
+        
+        if resultado['success']:
+            logger.info(f"Sincronización exitosa: {resultado['total_insertados']} registros insertados")
+            return jsonify(resultado), 200
+        else:
+            logger.error(f"Error en sincronización: {resultado['message']}")
+            return jsonify(resultado), 400
+            
+    except Exception as e:
+        logger.error(f"Excepción durante sincronización: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Error en sincronización: {str(e)}',
+            'total_extraidos': 0,
+            'total_insertados': 0,
+            'errores': [str(e)]
+        }), 500

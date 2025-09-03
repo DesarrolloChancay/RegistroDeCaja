@@ -11,6 +11,10 @@ from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload, MediaIoBa
 from googleapiclient.errors import HttpError
 import logging
 import mimetypes
+from dotenv import load_dotenv
+
+# Cargar variables de entorno desde .env
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +22,7 @@ class GoogleDriveService:
     def __init__(self):
         """Inicializa el servicio de Google Drive con cuenta de servicio"""
         self.service = None
-        self.root_folder_id = "0ACJTOvZYtpEBUk9PVA"
+        self.root_folder_id = str(os.getenv('GOOGLE_DRIVE_FOLDER_ID'))
         self._initialize_service()
     
     def _initialize_service(self):
@@ -29,13 +33,13 @@ class GoogleDriveService:
                 # Intenta usar el contexto de Flask si está disponible
                 from flask import current_app
                 credentials_path = os.path.join(
-                    current_app.root_path, '..', 'google_service_account.json'
+                    current_app.root_path, '..', str(os.getenv('GOOGLE_CREDENTIALS_PATH'))
                 )
             except (RuntimeError, ImportError):
                 # Si no hay contexto de Flask, usa la ruta relativa del script
                 script_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-                credentials_path = os.path.join(script_dir, 'google_service_account.json')
-            
+                credentials_path = os.path.join(script_dir, str(os.getenv('GOOGLE_CREDENTIALS_PATH')))
+
             if not os.path.exists(credentials_path):
                 logger.error(f"❌ Archivo de credenciales no encontrado: {credentials_path}")
                 raise FileNotFoundError(f"Credenciales de Google Drive no encontradas: {credentials_path}")
@@ -72,10 +76,10 @@ class GoogleDriveService:
             # Intentar obtener desde configuración de Flask si está disponible
             try:
                 from flask import current_app
-                root_folder_id = current_app.config.get('ROOT_FOLDER_ID', "0ACJTOvZYtpEBUk9PVA")
+                root_folder_id = current_app.config.get('ROOT_FOLDER_ID', str(os.getenv('GOOGLE_DRIVE_FOLDER_ID')))
             except (RuntimeError, ImportError):
                 # Si no hay contexto de Flask, usar ID por defecto
-                root_folder_id = "0ACJTOvZYtpEBUk9PVA"
+                root_folder_id = str(os.getenv('GOOGLE_DRIVE_FOLDER_ID'))
             
             # Verificar que la carpeta existe y es accesible
             try:
